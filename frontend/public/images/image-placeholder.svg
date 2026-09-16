@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" fill="none">
+  <!-- Background -->
+  <rect width="600" height="350" rx="20" fill="#FAFAFA"/>
+  <rect x="2" y="2" width="596" height="346" rx="18" stroke="#E5E7EB" stroke-width="3" stroke-dasharray="8 8"/>
+  
+  <!-- Center Image Icon -->
+  <circle cx="300" cy="140" r="45" fill="#ABD1C6" fill-opacity="0.3"/>
+  <path d="M280 145L295 130L315 150L325 140L335 150" stroke="#456F65" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="290" cy="125" r="5" fill="#456F65"/>
+  <rect x="275" y="110" width="50" height="42" rx="6" stroke="#456F65" stroke-width="3"/>
+  
+  <!-- Text explanation -->
+  <text x="300" y="220" text-anchor="middle" fill="#1F2937" font-family="system-ui, sans-serif" font-size="18" font-weight="bold">
+    ไม่สามารถโหลดรูปภาพได้ (Image Not Found)
+  </text>
+  <text x="300" y="250" text-anchor="middle" fill="#6B7280" font-family="system-ui, sans-serif" font-size="14">
+    โปรดตรวจสอบ URL หรือเส้นทางไฟล์รูปภาพในระบบ
+  </text>
+</svg>
