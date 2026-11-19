@@ -588,6 +588,24 @@ class ClassroomService:
             total_students = 0
             total_lessons = 0
 
+        # ข้อ 29: นับจำนวนเนื้อหา (Content) แยกจากจำนวนบทเรียน
+        # Content ผูกกับ Episode (โครงสร้างใหม่) หรือผูกกับ Lesson ตรง ๆ (โครงสร้างเดิม)
+        total_episodes = 0
+        total_contents = 0
+        if my_course_ids:
+            lesson_ids_q = db.session.query(Lesson.lesson_id).filter(Lesson.classroom_id.in_(my_course_ids))
+            episode_ids_q = db.session.query(Episode.episode_id).filter(Episode.lesson_id.in_(lesson_ids_q))
+            total_episodes = (
+                db.session.query(db.func.count(Episode.episode_id))
+                .filter(Episode.lesson_id.in_(lesson_ids_q))
+                .scalar() or 0
+            )
+            total_contents = (
+                db.session.query(db.func.count(Content.content_id))
+                .filter(db.or_(Content.episode_id.in_(episode_ids_q), Content.lesson_id.in_(lesson_ids_q)))
+                .scalar() or 0
+            )
+
         total_quizzes = 0
         try:
             if my_course_ids:
@@ -636,6 +654,8 @@ class ClassroomService:
             "coursesCount": len(courses_data),
             "totalStudents": total_students,
             "totalLessons": total_lessons,
+            "totalEpisodes": total_episodes,
+            "totalContents": total_contents,
             "totalQuizzes": total_quizzes,
             "recentEnrollments": recent_enrollments,
             "recentActivities": recent_activities

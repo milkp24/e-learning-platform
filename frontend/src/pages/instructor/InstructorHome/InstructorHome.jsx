@@ -22,6 +22,7 @@ function InstructorHome() {
   const [courses, setCourses] = useState([]);
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalLessons, setTotalLessons] = useState(0);
+  const [totalContents, setTotalContents] = useState(0);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,6 +41,7 @@ function InstructorHome() {
           setCourses(data.courses || []);
           setTotalStudents(data.totalStudents || 0);
           setTotalLessons(data.totalLessons || 0);
+          setTotalContents(data.totalContents || 0);
           setActivities(data.recentActivities || []);
         }
       } catch (err) {
@@ -85,6 +87,7 @@ function InstructorHome() {
         coursesCount={courses.length}
         totalStudents={totalStudents}
         totalLessons={totalLessons}
+        totalContents={totalContents}
       />
 
       {/* 3. คอร์สเรียนที่สอน (My Courses) & ฟีดกิจกรรม */}
