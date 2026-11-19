@@ -8,7 +8,7 @@ import { LuCode, LuCpu, LuLayers, LuArrowRight, LuSparkles } from "react-icons/l
 // 1. Programming & Development
 // 2. IoT & Smart Technology
 // 3. Data & Systems Engineering
-// - แต่ละการ์ดมี Icon, ชื่อหมวด, คำอธิบายสั้น และลิงก์ "ดูคอร์ส →" ไปยัง /classrooms
+// - แต่ละการ์ดมี Icon, ชื่อหมวด, คำอธิบายสั้น และลิงก์ "ดูคอร์ส →" ไปยัง /classrooms?category=<ชื่อหมวด>
 // - ดีไซน์ Soft Jade สะอาด สบายตา
 // ======================================================
 
@@ -58,7 +58,7 @@ function LearningCategoriesSection() {
           to="/classrooms"
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#004643] hover:underline self-start sm:self-auto"
         >
-          <span>ดูห้องเรียนทั้งหมด</span>
+          <span>ดูคอร์สเรียนทั้งหมด</span>
           <LuArrowRight className="h-4 w-4" />
         </Link>
       </div>
@@ -89,7 +89,7 @@ function LearningCategoriesSection() {
 
               <div className="pt-6 border-t border-[#E5E9E7]/80 mt-6">
                 <Link
-                  to="/classrooms"
+                  to={`/classrooms?category=${encodeURIComponent(cat.title)}`}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-[#004643] group-hover:translate-x-1 transition-transform"
                 >
                   <span>ดูคอร์ส</span>

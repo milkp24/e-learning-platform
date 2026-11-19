@@ -167,7 +167,7 @@ function InstructorHeader({ onOpenSidebar }) {
                 className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-[#26332F] hover:bg-[#ABD1C6]/20 transition"
               >
                 <LuBookOpen className="h-4 w-4 text-[#6B7773]" aria-hidden="true" />
-                <span>จัดการห้องเรียน</span>
+                <span>คอร์สเรียน</span>
               </Link>
 
               <Link

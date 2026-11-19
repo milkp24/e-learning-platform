@@ -68,6 +68,17 @@ function Sidebar({
     onOpenLockModal?.(featureName);
   };
 
+  // เทียบ path ที่อาจมี query (?view=mine) กับ URL ปัจจุบัน
+  // เมนู "คอร์สเรียนทั้งหมด" กับ "คอร์สเรียนของฉัน" ใช้ pathname เดียวกัน จึงต้องดูค่า view ด้วย
+  const matchesPath = (path) => {
+    if (!path) return false;
+    const [pathname, query = ""] = path.split("?");
+    if (location.pathname !== pathname) return false;
+    const targetView = new URLSearchParams(query).get("view");
+    const currentView = new URLSearchParams(location.search).get("view");
+    return (targetView || null) === (currentView || null);
+  };
+
   const isActive = (path, hash = "") => {
     if (hash) {
       return location.pathname === path && location.hash === hash;
@@ -81,14 +92,14 @@ function Sidebar({
     ) {
       return location.pathname === path && !location.hash;
     }
-    return location.pathname === path;
+    return matchesPath(path);
   };
 
   const isCurrentActive = (path) => {
     if (path === "/admin/home" || path === "/admin/dashboard") {
       return location.pathname === path;
     }
-    return location.pathname === path;
+    return matchesPath(path);
   };
 
   // Nav items resolved from sidebarMenuConfig

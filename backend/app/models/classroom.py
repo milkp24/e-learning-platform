@@ -149,6 +149,7 @@ class Classroom(db.Model):
             "instructor_id": str(self.instructor_id),
             "instructor_name": self.instructor.profile.display_name if self.instructor and self.instructor.profile else None,
             "category_id": str(self.category_id) if self.category_id else None,
+            "category_name": self.category.name if self.category else None,
             "title": self.title,
             "description": self.description,
             "thumbnail_url": self.thumbnail_url,

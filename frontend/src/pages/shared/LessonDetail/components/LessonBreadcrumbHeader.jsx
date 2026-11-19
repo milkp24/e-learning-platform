@@ -18,7 +18,7 @@ function LessonBreadcrumbHeader({
     <div>
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
         <Link to="/classrooms" className="hover:text-gray-600">
-          ห้องเรียนทั้งหมด
+          คอร์สเรียนทั้งหมด
         </Link>
         <span>/</span>
         <Link

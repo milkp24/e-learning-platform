@@ -1,9 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { LuCheck, LuCircleAlert as LuAlertCircle } from "react-icons/lu";
 import classroomService from "../../../services/classroomService";
 import CoursesHeader from "./components/CoursesHeader";
-import CourseFilters from "./components/CourseFilters";
+import useUrlParam from "../../../hooks/useUrlParam";
+import CourseListToolbar from "../../../features/courses/components/CourseListToolbar";
+import CoursePagination from "../../../features/courses/components/CoursePagination";
+import {
+  filterCourses,
+  getCategoryOptions,
+  getInstructorOptions,
+  paginate,
+} from "../../../features/courses/utils/courseListFilters";
 import CourseTable from "./components/CourseTable";
 import CreateCourseModal from "./components/CreateCourseModal";
 import EditCourseModal from "./components/EditCourseModal";
@@ -23,8 +31,18 @@ function Courses() {
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // ตัวกรอง / คำค้น / เลขหน้า เก็บใน URL เพื่อให้แก้ไขหรือย้อนกลับแล้วยังอยู่หน้าเดิม (FB-05)
+  const [search, setSearch] = useUrlParam("q", "");
+  const [statusFilter, setStatusFilter] = useUrlParam("status", "all");
+  const [category, setCategory] = useUrlParam("category", "");
+  const [view, setView] = useUrlParam("view", "all");
+  const [instructor, setInstructor] = useUrlParam("instructor", "");
+  const [page, setPage] = useUrlParam("page", 1);
+
+  const withPageReset = (setter) => (value) => {
+    setter(value);
+    setPage(1);
+  };
 
   // Create Course Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -164,16 +182,12 @@ function Courses() {
     }
   };
 
-  // ตัวกรองค้นหาและสถานะ
-  const filteredCourses = courses.filter((c) => {
-    const q = search.toLowerCase();
-    const matchesSearch =
-      c.title?.toLowerCase().includes(q) ||
-      c.description?.toLowerCase().includes(q) ||
-      c.instructor_name?.toLowerCase().includes(q);
+  // ตัวกรอง: หมวดหมู่ → ขอบเขต → อาจารย์ → ค้นหา (ใช้ร่วมกับหน้าคอร์สเรียน) แล้วจึงกรองสถานะ
+  const categories = useMemo(() => getCategoryOptions(courses, category), [courses, category]);
+  const instructors = useMemo(() => getInstructorOptions(courses), [courses]);
+  const baseFiltered = filterCourses(courses, { category, view, instructor, q: search });
 
-    if (!matchesSearch) return false;
-
+  const filteredCourses = baseFiltered.filter((c) => {
     if (statusFilter === "all") return true;
 
     const cStatus = (c.status || "active").toLowerCase();
@@ -192,6 +206,8 @@ function Courses() {
 
     return true;
   });
+
+  const { pageItems, page: currentPage, pages } = paginate(filteredCourses, page);
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -222,18 +238,42 @@ function Courses() {
         </div>
       )}
 
-      {/* 2. ค้นหาและกรองสถานะ */}
-      <CourseFilters
+      {/* 2. ตัวกรองและค้นหา */}
+      <CourseListToolbar
+        categories={categories}
+        category={category}
+        onCategoryChange={withPageReset(setCategory)}
+        viewOptions={[
+          { value: "all", label: "คอร์สทั้งหมด" },
+          { value: "mine", label: "คอร์สของฉัน" },
+          { value: "owned", label: "คอร์สที่เป็นเจ้าของ" },
+        ]}
+        view={view}
+        onViewChange={withPageReset(setView)}
+        instructors={instructors}
+        instructor={instructor}
+        onInstructorChange={withPageReset(setInstructor)}
         search={search}
-        onSearchChange={setSearch}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
+        onSearchChange={withPageReset(setSearch)}
         count={filteredCourses.length}
-      />
+      >
+        <select
+          aria-label="สถานะคอร์ส"
+          value={statusFilter}
+          onChange={(e) => withPageReset(setStatusFilter)(e.target.value)}
+          className="rounded-xl border border-[#E5E9E7] bg-[#FAFAFA] px-3.5 py-2 text-xs sm:text-sm font-medium text-[#26332F] focus:border-[#ABD1C6] focus:bg-white focus:outline-none transition cursor-pointer"
+        >
+          <option value="all">สถานะทั้งหมด</option>
+          <option value="published">เผยแพร่แล้ว</option>
+          <option value="draft">ฉบับร่าง</option>
+          <option value="pending">รอตรวจสอบ</option>
+          <option value="inactive">ปิดการเผยแพร่</option>
+        </select>
+      </CourseListToolbar>
 
       {/* 3. ตาราง / การ์ดรายการคอร์สเรียน */}
       <CourseTable
-        courses={filteredCourses}
+        courses={pageItems}
         isLoading={isLoading}
         error={error}
         onRetry={handleRetry}
@@ -241,6 +281,8 @@ function Courses() {
         onTogglePublish={handleTogglePublish}
         onDelete={handleOpenDelete}
       />
+
+      <CoursePagination page={currentPage} pages={pages} onPageChange={setPage} />
 
       {/* 4. Modal สร้างคอร์สใหม่ */}
       <CreateCourseModal

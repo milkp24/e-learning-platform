@@ -11,6 +11,7 @@ import UserDetailModal from "./components/UserDetailModal";
 import EditUserModal from "./components/EditUserModal";
 import CreateUserModal from "./components/CreateUserModal";
 import DeleteUserConfirmModal from "./components/DeleteUserConfirmModal";
+import useUrlParam from "../../../hooks/useUrlParam";
 
 /**
  * Admin Users Component (User Management)
@@ -25,15 +26,15 @@ function Users() {
 
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useUrlParam("page", 1);
   const [pages, setPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Filters & Search
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useUrlParam("q", "");
+  const [roleFilter, setRoleFilter] = useUrlParam("role", "");
+  const [statusFilter, setStatusFilter] = useUrlParam("status", "");
 
   // Create User Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -235,9 +236,9 @@ function Users() {
         search={search}
         setSearch={setSearch}
         roleFilter={roleFilter}
-        setRoleFilter={setRoleFilter}
+        setRoleFilter={(v) => { setRoleFilter(v); setPage(1); }}
         statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
+        setStatusFilter={(v) => { setStatusFilter(v); setPage(1); }}
         onSearchSubmit={handleSearchSubmit}
       />
 

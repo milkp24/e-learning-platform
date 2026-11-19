@@ -17,7 +17,7 @@ function CreateClassroomModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
       <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">สร้างห้องเรียนใหม่</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">สร้างคอร์สเรียนใหม่</h2>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">

@@ -9,6 +9,7 @@ import CreateSchoolModal from "./components/CreateSchoolModal";
 import EditSchoolModal from "./components/EditSchoolModal";
 import SchoolDetailModal from "./components/SchoolDetailModal";
 import DeleteSchoolConfirmModal from "./components/DeleteSchoolConfirmModal";
+import useUrlParam from "../../../hooks/useUrlParam";
 
 /**
  * Admin Schools Component (School Management - Module 9.2)
@@ -23,14 +24,14 @@ function Schools() {
 
   const [schools, setSchools] = useState([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useUrlParam("page", 1);
   const [pages, setPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Filters & Search
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useUrlParam("q", "");
+  const [statusFilter, setStatusFilter] = useUrlParam("status", "");
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -148,7 +149,7 @@ function Schools() {
         search={search}
         setSearch={setSearch}
         statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
+        setStatusFilter={(v) => { setStatusFilter(v); setPage(1); }}
         onSearchSubmit={handleSearchSubmit}
       />
 

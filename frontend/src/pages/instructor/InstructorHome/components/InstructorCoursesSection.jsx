@@ -7,8 +7,8 @@ function InstructorCoursesSection({ courses = [] }) {
       <SectionHeader
         title="คอร์สเรียนที่คุณรับผิดชอบ"
         subtitle="จัดการเนื้อหาบทเรียนและโครงสร้าง 4 ระดับชั้น"
-        actionText="ดูห้องเรียนทั้งหมด"
-        actionLink="/classrooms"
+        actionText="ดูคอร์สเรียนของฉัน"
+        actionLink="/classrooms?view=mine"
       />
       {courses.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#E5E9E7] bg-white p-8 text-center space-y-3">

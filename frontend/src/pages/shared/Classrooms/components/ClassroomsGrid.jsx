@@ -15,6 +15,7 @@ function ClassroomsGrid({
   hasRole,
   onJoin,
   joiningId,
+  hasAnyCourse = false,
 }) {
   if (loading) {
     return (
@@ -35,6 +36,15 @@ function ClassroomsGrid({
         >
           ลองใหม่อีกครั้ง
         </button>
+      </div>
+    );
+  }
+
+  // มีคอร์สในระบบ แต่ไม่ตรงกับตัวกรอง
+  if (hasAnyCourse && (!classrooms || classrooms.length === 0)) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#E5E9E7] bg-white p-10 text-center text-sm text-[#6B7773]">
+        ไม่พบคอร์สที่ตรงกับตัวกรอง ลองเปลี่ยนหมวดหมู่หรือคำค้นหา
       </div>
     );
   }

@@ -16,6 +16,7 @@ import { getAllPermissionKeys } from "../../../features/permissions/data/permiss
 import AddStaffModal from "./components/AddStaffModal";
 import StaffPermissionModal from "./components/StaffPermissionModal";
 import AuditLogModal from "../../../features/permissions/components/AuditLogModal/AuditLogModal";
+import useUrlParam from "../../../hooks/useUrlParam";
 
 export default function Staff() {
   const {
@@ -29,9 +30,9 @@ export default function Staff() {
   const [realStaff, setRealStaff] = useState([]);
   // FB-18: จำนวนสิทธิ์ทั้งหมด (ใช้ค่าจาก Backend ถ้ามี ไม่ hardcode)
   const [totalPermissions, setTotalPermissions] = useState(getAllPermissionKeys().length);
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useUrlParam("q", "");
+  const [roleFilter, setRoleFilter] = useUrlParam("role", "all");
+  const [statusFilter, setStatusFilter] = useUrlParam("status", "all");
 
   const loadStaff = useCallback(async () => {
     try {

@@ -21,8 +21,8 @@ function InstructorWelcomeSection({ displayName }) {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <Button to="/classrooms" variant="secondary" size="md">
-          + จัดการห้องเรียน
+        <Button to="/classrooms?view=mine" variant="secondary" size="md">
+          คอร์สเรียนของฉัน
         </Button>
       </div>
     </div>

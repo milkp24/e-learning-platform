@@ -1,20 +1,20 @@
 /**
  * ClassroomsHeader Component
- * Title, role-adaptive description, and "+ สร้างห้องเรียนใหม่" button (for instructor/admin).
+ * Title, role-adaptive description, and "+ สร้างคอร์สเรียนใหม่" button (for instructor/admin).
  */
-function ClassroomsHeader({ isStudentOnly, canCreateClassroom, onOpenCreateModal }) {
+function ClassroomsHeader({ view = "all", canCreateClassroom, onOpenCreateModal }) {
+  const isMine = view === "mine" || view === "owned";
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          {isStudentOnly
-            ? "คอร์สเรียนของฉัน"
-            : "ห้องเรียนทั้งหมด"}
+          {isMine ? "คอร์สเรียนของฉัน" : "คอร์สเรียนทั้งหมด"}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          {isStudentOnly
-            ? "รายวิชาและห้องเรียนที่คุณกำลังศึกษา เข้าสู่บทเรียนเพื่อเรียนรู้ต่อได้ทันที"
-            : "เลือกห้องเรียนเพื่อเข้าสู่บทเรียนและเนื้อหาการเรียนรู้"}
+          {isMine
+            ? "คอร์สที่คุณลงทะเบียนเรียนหรือรับผิดชอบสอน"
+            : "เลือกคอร์สเพื่อเข้าสู่บทเรียนและเนื้อหาการเรียนรู้"}
         </p>
       </div>
 
@@ -25,7 +25,7 @@ function ClassroomsHeader({ isStudentOnly, canCreateClassroom, onOpenCreateModal
           type="button"
           className="rounded-xl bg-[#ABD1C6] px-5 py-2.5 text-sm font-bold text-[#20302C] transition hover:bg-[#9CC5B9] shadow-sm cursor-pointer"
         >
-          + สร้างห้องเรียนใหม่
+          + สร้างคอร์สเรียนใหม่
         </button>
       )}
     </div>

@@ -79,10 +79,21 @@ export const getStudentMenu = ({ isAdmin = false, isSuperAdmin = false } = {}) =
           icon: LuHome,
           type: "link",
         },
+      ],
+    },
+    {
+      title: "คอร์สเรียน",
+      items: [
         {
           label: "คอร์สเรียนทั้งหมด",
           path: "/classrooms",
           icon: LuBookOpen,
+          type: "link",
+        },
+        {
+          label: "คอร์สเรียนของฉัน",
+          path: "/classrooms?view=mine",
+          icon: LuBookMarked,
           type: "link",
         },
         {
@@ -174,10 +185,21 @@ export const getInstructorMenu = ({ isAdmin = false, isSuperAdmin = false } = {}
           icon: LuBarChart3,
           type: "link",
         },
+      ],
+    },
+    {
+      title: "คอร์สเรียน",
+      items: [
         {
-          label: "จัดการห้องเรียน",
+          label: "คอร์สเรียนทั้งหมด",
           path: "/classrooms",
           icon: LuBookOpen,
+          type: "link",
+        },
+        {
+          label: "คอร์สเรียนของฉัน",
+          path: "/classrooms?view=mine",
+          icon: LuBookMarked,
           type: "link",
         },
       ],
@@ -305,7 +327,7 @@ export const getAdminMenu = ({ isSuperAdmin = false } = {}) => {
       items: userManagementItems,
     },
     {
-      title: "การจัดการการเรียนรู้",
+      title: "คอร์สเรียน",
       items: [
         {
           label: "คอร์สเรียนทั้งหมด",
@@ -314,6 +336,17 @@ export const getAdminMenu = ({ isSuperAdmin = false } = {}) => {
           icon: LuBookOpen,
           type: "link",
         },
+        {
+          label: "คอร์สเรียนของฉัน",
+          path: "/classrooms?view=mine",
+          icon: LuBookMarked,
+          type: "link",
+        },
+      ],
+    },
+    {
+      title: "การจัดการการเรียนรู้",
+      items: [
         {
           label: "บทเรียนและตอนย่อย",
           path: "/admin/lessons",
