@@ -13,6 +13,7 @@ function LessonBreadcrumbHeader({
   onOpenAddContentModal,
   onOpenEditLessonModal,
   onDeleteLesson,
+  previewQuery = "",
 }) {
   return (
     <div>
@@ -22,7 +23,7 @@ function LessonBreadcrumbHeader({
         </Link>
         <span>/</span>
         <Link
-          to={`/classrooms/${classroomId}`}
+          to={`/classrooms/${classroomId}${previewQuery}`}
           className="hover:text-gray-600 truncate max-w-xs"
         >
           {classroom?.title || "ห้องเรียน"}

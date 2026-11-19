@@ -29,7 +29,10 @@ function StandardLessonsSection({
   onOpenLockModal,
   onOpenAddLessonModal,
   onDeleteLesson,
+  previewMode = false,
 }) {
+  // โหมดดูตัวอย่างมุมมองนักเรียน: ส่ง ?preview=student ต่อไปหน้าบทเรียน เพื่อซ่อนปุ่มจัดการ (ข้อ 20)
+  const previewQuery = previewMode ? "?preview=student" : "";
   // Track open/collapsed state of chapters and lessons (default open)
   const [collapsedItems, setCollapsedItems] = useState({});
 
@@ -101,7 +104,7 @@ function StandardLessonsSection({
             </button>
           ) : isEnrolled ? (
             <Link
-              to={`/classrooms/${classroomId}/lessons/${parentLessonId}`}
+              to={`/classrooms/${classroomId}/lessons/${parentLessonId}${previewQuery}`}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[#004643] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#003835] transition shadow-2xs"
             >
               <LuCirclePlay className="h-3.5 w-3.5" aria-hidden="true" />
@@ -182,7 +185,7 @@ function StandardLessonsSection({
               </button>
             ) : isEnrolled ? (
               <Link
-                to={`/classrooms/${classroomId}/lessons/${lessonId}`}
+                to={`/classrooms/${classroomId}/lessons/${lessonId}${previewQuery}`}
                 className="inline-flex items-center gap-1 rounded-xl bg-[#004643] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#003835] transition shadow-2xs"
               >
                 <LuCirclePlay className="h-3.5 w-3.5" aria-hidden="true" />

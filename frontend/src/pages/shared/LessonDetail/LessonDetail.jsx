@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { LuTriangleAlert as LuAlertTriangle, LuLayers, LuCpu, LuX, LuCompass } from "react-icons/lu";
 import classroomService from "../../../services/classroomService";
 import useAuthStore from "../../../store/useAuthStore";
@@ -79,8 +79,14 @@ function LessonDetail() {
   const interactiveMeta = isIoT101 ? EPISODE_INTERACTIVE_DATA[lessonId] : null;
   const isCompleted = isIoT101 && completedEpisodes.includes(lessonId);
 
+  // โหมดดูตัวอย่างมุมมองนักเรียน (ข้อ 20): ซ่อนปุ่มเพิ่มเนื้อหา แก้ไข และลบบทเรียนทั้งหมด
+  const [searchParams] = useSearchParams();
+  const isStudentPreview =
+    searchParams.get("preview") === "student" && (hasRole("instructor") || hasRole("admin"));
+
   // ตรวจสอบสิทธิ์: ผู้ใช้เป็น Admin หรือเป็น Instructor เจ้าของห้องเรียนนี้หรือไม่
   const isOwnerOrAdmin =
+    !isStudentPreview &&
     classroom &&
     user &&
     (hasRole("admin") ||
@@ -310,8 +316,23 @@ function LessonDetail() {
       {/* Notice Banner */}
       <LessonNoticeBanner actionNotice={actionNotice} />
 
+      {isStudentPreview && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+          <span className="font-bold text-amber-900">
+            คุณกำลังดูบทเรียนในมุมมองนักเรียน (Student Preview)
+          </span>
+          <Link
+            to={`/classrooms/${classroomId}/lessons/${lessonId}`}
+            className="rounded-xl bg-white border border-amber-300 px-3.5 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition"
+          >
+            ออกจากมุมมองนักเรียน
+          </Link>
+        </div>
+      )}
+
       {/* Header & Breadcrumbs */}
       <LessonBreadcrumbHeader
+        previewQuery={isStudentPreview ? "?preview=student" : ""}
         classroomId={classroomId}
         classroom={classroom}
         lesson={lesson}

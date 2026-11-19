@@ -415,6 +415,7 @@ function ClassroomDetail() {
                 setIsAddLessonModalOpen(true);
               }}
               onDeleteLesson={handleDeleteLesson}
+              previewMode={isInstructorPreview}
             />
           )}
 
