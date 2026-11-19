@@ -122,6 +122,7 @@ function AppRoutes() {
         <Route path="/classrooms" element={<Classrooms />} />
         <Route path="/classrooms/:id" element={<ClassroomDetail />} />
         <Route path="/courses/:id" element={<ClassroomDetail />} />
+        <Route path="/about" element={<InfoPage page="about" />} />
         <Route path="/privacy" element={<InfoPage page="privacy" />} />
         <Route path="/terms" element={<InfoPage page="terms" />} />
         <Route path="/help" element={<InfoPage page="help" />} />

@@ -51,9 +51,9 @@ function Footer({ simple = false }) {
                   </Link>
                 </li>
                 <li>
-                  <a href="#why-us" className="hover:text-[#004643] transition">
+                  <Link to="/about" className="hover:text-[#004643] transition">
                     เกี่ยวกับเรา
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <Link to="/register" className="hover:text-[#004643] transition">
