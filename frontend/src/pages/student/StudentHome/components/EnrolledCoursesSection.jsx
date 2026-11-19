@@ -24,12 +24,13 @@ export default function EnrolledCoursesSection({ courses = [], loading = false }
       <SectionHeader
         title="คอร์สเรียนที่คุณกำลังเรียน"
         subtitle="เข้าสู่บทเรียนและเรียนรู้อย่างต่อเนื่อง"
-        actionText="ดูคอร์สทั้งหมด"
-        actionLink="/classrooms"
+        actionText="ดูทั้งหมด"
+        actionLink="/classrooms?view=mine"
         icon={LuBookOpen}
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {courses.map((course) => (
+        {/* ข้อ 28: แสดงแค่ 3 คอร์สล่าสุด ที่เหลือดูได้จากปุ่ม "ดูทั้งหมด" */}
+        {courses.slice(0, 3).map((course) => (
           <CourseCard
             key={course.id || course.classroom_id}
             course={{ ...course, is_enrolled: true }}

@@ -7,7 +7,7 @@ function InstructorCoursesSection({ courses = [] }) {
       <SectionHeader
         title="คอร์สเรียนที่คุณรับผิดชอบ"
         subtitle="จัดการเนื้อหาบทเรียนและโครงสร้าง 4 ระดับชั้น"
-        actionText="ดูคอร์สเรียนของฉัน"
+        actionText="ดูทั้งหมด"
         actionLink="/classrooms?view=mine"
       />
       {courses.length === 0 ? (
@@ -21,7 +21,8 @@ function InstructorCoursesSection({ courses = [] }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {courses.map((c, idx) => (
+          {/* ข้อ 28: แสดงแค่ 3 คอร์ส ที่เหลือดูได้จากปุ่ม "ดูทั้งหมด" */}
+          {courses.slice(0, 3).map((c, idx) => (
             <CourseCard
               key={c.id || c.classroom_id || idx}
               course={c}
