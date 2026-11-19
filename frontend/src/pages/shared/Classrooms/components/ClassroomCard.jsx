@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { LuBookMarked, LuUsers, LuListTree } from "react-icons/lu";
+import { getCourseStatus } from "../../../../features/courses/utils/courseStatus";
 
 /**
  * ClassroomCard Component
@@ -17,6 +18,7 @@ function ClassroomCard({
   const courseId = classroom.classroom_id || classroom.id;
   const rawThumbnail = classroom.thumbnail_url || classroom.cover_image;
   const showFallback = !rawThumbnail || imageError;
+  const status = getCourseStatus(classroom.status);
 
   return (
     <div className="flex flex-col justify-between rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md">
@@ -42,8 +44,11 @@ function ClassroomCard({
         </div>
 
         <div className="flex items-start justify-between gap-2">
-          <span className="rounded-lg bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
-            {classroom.status || "active"}
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold ${status.className}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+            {status.label}
           </span>
           {isOwner && (
             <span className="rounded-lg bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">

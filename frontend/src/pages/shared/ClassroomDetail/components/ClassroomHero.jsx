@@ -1,3 +1,4 @@
+import { getCourseStatus } from "../../../../features/courses/utils/courseStatus";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -57,7 +58,7 @@ function ClassroomHero({
             <span className="rounded-lg bg-[#ABD1C6]/30 px-2.5 py-0.5 text-xs font-bold text-[#004643]">
               {isIoT101
                 ? "IoT & Smart City"
-                : classroom.category || classroom.status || "active"}
+                : classroom.category_name || getCourseStatus(classroom.status).label}
             </span>
 
             <span className="rounded-lg bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">

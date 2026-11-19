@@ -443,7 +443,7 @@ function SchoolDetailModal({
                                       : "bg-gray-100 text-gray-700"
                                   }`}
                                 >
-                                  {cr.status || "active"}
+                                  {(cr.status || "active") === "active" ? "ใช้งาน" : "ปิดใช้งาน"}
                                 </span>
                               </td>
                               {canEditSchool && (
