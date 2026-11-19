@@ -2,6 +2,7 @@ import uuid
 import hashlib
 import secrets
 import logging
+import math
 from datetime import datetime, timezone, timedelta
 from flask import Blueprint, request, jsonify, make_response, current_app
 from flask_jwt_extended import (
@@ -15,6 +16,7 @@ from app.extensions import db, limiter
 from app.models.user import User, UserProfile, PasswordHistory
 from app.models.role import Role
 from app.models.security import RefreshToken, TokenBlocklist, PasswordResetToken, SystemSetting
+from app.models.admin import AuditLog
 from app.services.email_service import send_reset_password_email
 from app.utils.decorators import get_current_user
 from app.utils.validators import (
@@ -58,6 +60,132 @@ def get_session_timeout_delta() -> timedelta:
         pass
 
     return timedelta(minutes=30)
+
+
+# =====================================================================
+# จำกัดจำนวนครั้งการกรอกรหัสยืนยัน (Reset Token) ผิด (FB-02)
+# - นับจำนวนครั้งที่กรอกผิดต่อ IP จากตาราง audit_logs (ไม่หายเมื่อ restart server)
+# - ผิดครบ PASSWORD_RESET_MAX_ATTEMPTS ครั้ง (ค่าเริ่มต้น 5) ภายใน
+#   PASSWORD_RESET_LOCK_MINUTES นาที (ค่าเริ่มต้น 15) -> ล็อกชั่วคราว 15 นาที
+# - บันทึก Audit Log ทุกครั้งที่กรอกผิด และเมื่อถูกล็อก
+# =====================================================================
+RESET_FAILED_ACTION = "PASSWORD_RESET_FAILED"
+RESET_LOCKED_ACTION = "PASSWORD_RESET_LOCKED"
+
+
+def _reset_attempt_policy() -> tuple[int, int]:
+    """คืนค่า (จำนวนครั้งสูงสุด, ระยะเวลาล็อกเป็นนาที) จาก Config"""
+    max_attempts = int(current_app.config.get("PASSWORD_RESET_MAX_ATTEMPTS", 5))
+    lock_minutes = int(current_app.config.get("PASSWORD_RESET_LOCK_MINUTES", 15))
+    return max_attempts, lock_minutes
+
+
+def _as_utc(value: datetime) -> datetime:
+    """แปลง datetime ให้มี timezone UTC เสมอ (กันกรณี DB คืนค่าแบบ naive)"""
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def _get_reset_lock_state(ip_address: str) -> tuple[bool, int, int]:
+    """
+    ตรวจสถานะการล็อกของ IP
+    คืนค่า (ถูกล็อกอยู่หรือไม่, จำนวนนาทีที่เหลือ, จำนวนครั้งที่กรอกผิดในรอบปัจจุบัน)
+    """
+    _, lock_minutes = _reset_attempt_policy()
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(minutes=lock_minutes)
+
+    last_lock = (
+        AuditLog.query
+        .filter(AuditLog.action == RESET_LOCKED_ACTION, AuditLog.ip_address == ip_address)
+        .order_by(AuditLog.created_at.desc())
+        .first()
+    )
+    if last_lock and _as_utc(last_lock.created_at) >= window_start:
+        unlock_at = _as_utc(last_lock.created_at) + timedelta(minutes=lock_minutes)
+        remaining = max(1, math.ceil((unlock_at - now).total_seconds() / 60))
+        return True, remaining, 0
+
+    # นับเฉพาะครั้งที่ผิดภายในช่วงเวลาล่าสุด และหลังการล็อกครั้งก่อน (ถ้ามี)
+    count_since = window_start
+    if last_lock and _as_utc(last_lock.created_at) > count_since:
+        count_since = _as_utc(last_lock.created_at)
+
+    failures = (
+        AuditLog.query
+        .filter(
+            AuditLog.action == RESET_FAILED_ACTION,
+            AuditLog.ip_address == ip_address,
+            AuditLog.created_at > count_since,
+        )
+        .count()
+    )
+    return False, 0, failures
+
+
+def _reset_locked_response(remaining_minutes: int):
+    """Response มาตรฐานเมื่อถูกล็อก (HTTP 429)"""
+    max_attempts, _ = _reset_attempt_policy()
+    return jsonify({
+        "error": "Too Many Requests",
+        "message": (
+            f"กรอกรหัสยืนยันผิดเกิน {max_attempts} ครั้ง ระบบล็อกการตั้งรหัสผ่านใหม่ชั่วคราว "
+            f"กรุณาลองใหม่ในอีก {remaining_minutes} นาที แล้วขอรหัสยืนยันใหม่จากหน้าลืมรหัสผ่าน"
+        ),
+        "retry_after_minutes": remaining_minutes,
+    }), 429
+
+
+def _record_reset_failure(ip_address: str, reason: str, reset_record=None, message: str = ""):
+    """
+    บันทึกการกรอกรหัสยืนยันผิดลง Audit Log
+    - หากผิดครบตามกำหนด: บันทึก PASSWORD_RESET_LOCKED, ยกเลิก Token เดิม (บังคับขอรหัสใหม่) และคืน 429
+    - หากยังไม่ครบ: คืน 400 พร้อมจำนวนครั้งที่เหลือ
+    """
+    max_attempts, lock_minutes = _reset_attempt_policy()
+    user_id = reset_record.user_id if reset_record is not None else None
+    token_id = reset_record.token_id if reset_record is not None else None
+
+    db.session.add(AuditLog(
+        user_id=user_id,
+        action=RESET_FAILED_ACTION,
+        entity_type="password_reset_token",
+        entity_id=token_id,
+        details={"reason": reason},
+        ip_address=ip_address,
+    ))
+    db.session.commit()
+
+    _, _, failures = _get_reset_lock_state(ip_address)
+
+    if failures >= max_attempts:
+        if reset_record is not None and reset_record.used_at is None:
+            # ยกเลิก Token ที่เกี่ยวข้อง เพื่อบังคับให้ผู้ใช้ขอรหัสยืนยันใหม่
+            reset_record.used_at = datetime.now(timezone.utc)
+        db.session.add(AuditLog(
+            user_id=user_id,
+            action=RESET_LOCKED_ACTION,
+            entity_type="password_reset_token",
+            entity_id=token_id,
+            details={
+                "failed_attempts": failures,
+                "max_attempts": max_attempts,
+                "lock_minutes": lock_minutes,
+                "last_reason": reason,
+            },
+            ip_address=ip_address,
+        ))
+        db.session.commit()
+        logger.warning(
+            "Password reset locked for IP %s after %s failed attempts", ip_address, failures
+        )
+        return _reset_locked_response(lock_minutes)
+
+    remaining_attempts = max_attempts - failures
+    return jsonify({
+        "error": "Bad Request",
+        "message": f"{message} (เหลือโอกาสอีก {remaining_attempts} ครั้ง)",
+        "remaining_attempts": remaining_attempts,
+    }), 400
 
 
 @auth_bp.route("/register", methods=["POST"])
@@ -694,6 +822,12 @@ def reset_password():
             "message": "กรุณาส่งข้อมูล JSON ให้ถูกต้อง"
         }), 400
 
+    # ตรวจว่า IP นี้ถูกล็อกจากการกรอกรหัสยืนยันผิดเกินกำหนดหรือไม่ (FB-02)
+    client_ip = request.remote_addr or "unknown"
+    is_locked, remaining_minutes, _ = _get_reset_lock_state(client_ip)
+    if is_locked:
+        return _reset_locked_response(remaining_minutes)
+
     # ดึงค่า Token ที่ส่งมา
     token = data.get("token")
     # ดึงค่ารหัสผ่านใหม่
@@ -733,30 +867,29 @@ def reset_password():
 
     # กรณีที่ 1: ไม่พบ Token ในระบบ
     if not reset_record:
-        # ส่งคืน 400 Bad Request
-        return jsonify({
-            "error": "Bad Request",
-            "message": "ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้อง"
-        }), 400
+        # นับเป็นการกรอกรหัสยืนยันผิด (FB-02)
+        return _record_reset_failure(
+            client_ip, "invalid_token", None, "ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้อง"
+        )
 
     # กรณีที่ 2: Token ถูกนำไปใช้งานแล้ว (One-time Use Requirement)
     if reset_record.used_at is not None:
-        # ส่งคืน 400 Bad Request ตามข้อกำหนด
-        return jsonify({
-            "error": "Bad Request",
-            "message": "ลิงก์นี้ถูกใช้งานแล้ว กรุณาขอลิงก์รีเซ็ตรหัสผ่านใหม่"
-        }), 400
+        # นับเป็นการกรอกรหัสยืนยันผิด (FB-02)
+        return _record_reset_failure(
+            client_ip, "token_already_used", reset_record,
+            "ลิงก์นี้ถูกใช้งานแล้ว กรุณาขอลิงก์รีเซ็ตรหัสผ่านใหม่"
+        )
 
     # ดึงเวลาปัจจุบันใน Timezone UTC สำหรับเปรียบเทียบ
     now = datetime.now(timezone.utc)
 
     # กรณีที่ 3: Token หมดอายุแล้ว (อายุเกิน 15 นาที)
-    if reset_record.expires_at <= now:
-        # ส่งคืน 400 Bad Request ตามข้อกำหนด
-        return jsonify({
-            "error": "Bad Request",
-            "message": "ลิงก์รีเซ็ตรหัสผ่านหมดอายุแล้ว กรุณาขอลิงก์ใหม่อีกครั้ง"
-        }), 400
+    if _as_utc(reset_record.expires_at) <= now:
+        # นับเป็นการกรอกรหัสยืนยันผิด (FB-02)
+        return _record_reset_failure(
+            client_ip, "token_expired", reset_record,
+            "ลิงก์รีเซ็ตรหัสผ่านหมดอายุแล้ว กรุณาขอลิงก์ใหม่อีกครั้ง"
+        )
 
     # ดึงข้อมูลผู้ใช้งานที่เชื่อมโยงกับ Token นี้
     user = User.query.get(reset_record.user_id)

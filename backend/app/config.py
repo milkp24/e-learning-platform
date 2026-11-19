@@ -58,6 +58,10 @@ class Config:
     RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
     RATELIMIT_CHANGE_PASSWORD = os.getenv("RATELIMIT_CHANGE_PASSWORD", "5 per minute")
 
+    # จำกัดการกรอกรหัสยืนยันตั้งรหัสผ่านใหม่ผิด (FB-02): ผิดครบ 5 ครั้ง ล็อก 15 นาที
+    PASSWORD_RESET_MAX_ATTEMPTS = int(os.getenv("PASSWORD_RESET_MAX_ATTEMPTS", "5"))
+    PASSWORD_RESET_LOCK_MINUTES = int(os.getenv("PASSWORD_RESET_LOCK_MINUTES", "15"))
+
 
 def verify_test_database_safety(db_uri: str) -> str:
     """
