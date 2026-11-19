@@ -2,7 +2,21 @@ import {
   LuShield,
   LuIdCard,
   LuCheck,
+  LuLock,
 } from "react-icons/lu";
+
+// ป้ายแสดงว่าฟิลด์นี้เป็นแบบอ่านอย่างเดียว (FB-08)
+function ReadOnlyBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 rounded bg-gray-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-[#6B7773]"
+      title="แก้ไขไม่ได้ หากต้องการเปลี่ยนกรุณาติดต่อผู้ดูแลระบบ"
+    >
+      <LuLock className="h-2.5 w-2.5" aria-hidden="true" />
+      อ่านอย่างเดียว
+    </span>
+  );
+}
 
 /**
  * AccountDetailsSection Component
@@ -114,8 +128,16 @@ function AccountDetailsSection({ user, displayName }) {
 
           {/* 4. อีเมลหลัก */}
           <div className="rounded-xl border border-gray-100 bg-[#FAFAFA] p-3">
-            <span className="block text-[11px] font-medium text-[#6B7773]">4. อีเมลสำหรับเข้าสู่ระบบ</span>
-            <span className="font-semibold text-[#26332F] text-xs mt-0.5 block truncate" title={email}>
+            <span className="flex items-center justify-between gap-2 text-[11px] font-medium text-[#6B7773]">
+              <span>4. อีเมลสำหรับเข้าสู่ระบบ</span>
+              <ReadOnlyBadge />
+            </span>
+            <span
+              className="font-semibold text-[#26332F] text-xs mt-0.5 block truncate"
+              title={email}
+              aria-readonly="true"
+              data-testid="profile-email-readonly"
+            >
               {email}
             </span>
           </div>
@@ -150,8 +172,15 @@ function AccountDetailsSection({ user, displayName }) {
 
           {/* 9. สิทธิ์ในระบบ (Role) */}
           <div className="rounded-xl border border-gray-100 bg-[#FAFAFA] p-3">
-            <span className="block text-[11px] font-medium text-[#6B7773]">9. บทบาทในระบบ (Role)</span>
-            <span className="font-bold text-[#26332F] text-sm mt-0.5 block uppercase">
+            <span className="flex items-center justify-between gap-2 text-[11px] font-medium text-[#6B7773]">
+              <span>9. บทบาทในระบบ (Role)</span>
+              <ReadOnlyBadge />
+            </span>
+            <span
+              className="font-bold text-[#26332F] text-sm mt-0.5 block uppercase"
+              aria-readonly="true"
+              data-testid="profile-role-readonly"
+            >
               {roles.join(", ")}
             </span>
           </div>

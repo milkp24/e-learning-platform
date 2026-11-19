@@ -38,17 +38,34 @@ class UserService:
             raise UserServiceError("User not found.", 404, "Not Found")
         return {"user": current_user.to_dict()}
 
+    # ฟิลด์ที่ห้ามแก้ไขผ่าน PUT /users/me/profile (FB-08)
+    PROFILE_PROTECTED_FIELDS = frozenset({
+        "email", "role", "roles", "role_name", "role_names", "user_role",
+        "status", "password", "password_hash", "user_id",
+    })
+
     @classmethod
     def update_my_profile(cls, current_user: User | None, data: dict) -> dict:
         """Update profile information (display_name, profile_image) for authenticated user."""
         if not current_user:
             raise UserServiceError("User not found.", 404, "Not Found")
 
-        if not data:
+        if not data or not isinstance(data, dict):
             raise UserServiceError("JSON body is required.", 400, "Bad Request")
 
         if not current_user.profile:
             raise UserServiceError("User profile not found.", 404, "Not Found")
+
+        # FB-08: หน้าข้อมูลส่วนตัวห้ามแก้ไขอีเมล บทบาท สถานะ หรือรหัสผ่าน
+        # ปฏิเสธทั้งคำขอ (ไม่บันทึกฟิลด์อื่นด้วย) เพื่อไม่ให้เกิดการแก้ไขบางส่วนแบบเงียบ ๆ
+        protected_fields = sorted(cls.PROFILE_PROTECTED_FIELDS.intersection(data.keys()))
+        if protected_fields:
+            raise UserServiceError(
+                "ไม่สามารถแก้ไขอีเมลหรือบทบาทจากหน้าข้อมูลส่วนตัวได้ "
+                f"(ฟิลด์ที่ไม่อนุญาต: {', '.join(protected_fields)}) กรุณาติดต่อผู้ดูแลระบบ",
+                400,
+                "Validation Error",
+            )
 
         if "display_name" in data:
             new_name = data.get("display_name")
