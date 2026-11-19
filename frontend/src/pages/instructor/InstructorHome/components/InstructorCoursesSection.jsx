@@ -21,8 +21,8 @@ function InstructorCoursesSection({ courses = [] }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* ข้อ 28: แสดงแค่ 3 คอร์ส ที่เหลือดูได้จากปุ่ม "ดูทั้งหมด" */}
-          {courses.slice(0, 3).map((c, idx) => (
+          {/* แสดง 4 คอร์ส (ตาราง 2x2) ที่เหลือดูได้จากปุ่ม "ดูทั้งหมด" */}
+          {courses.slice(0, 4).map((c, idx) => (
             <CourseCard
               key={c.id || c.classroom_id || idx}
               course={c}

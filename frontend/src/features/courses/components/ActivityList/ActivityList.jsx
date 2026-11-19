@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import formatThaiDateTime from "../../../../utils/formatThaiDateTime";
 
 // ======================================================
 // ActivityList Component (รายการกิจกรรมหรือบันทึกล่าสุด)
@@ -151,7 +152,7 @@ function ActivityList({
                   )}
                   {item.timestamp && (
                     <p className="text-[11px] text-gray-400">
-                      {item.timestamp}
+                      {formatThaiDateTime(item.timestamp)}
                     </p>
                   )}
                 </div>

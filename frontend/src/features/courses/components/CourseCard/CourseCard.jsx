@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { LuCheck, LuBookOpen, LuBookMarked, LuArrowRight } from "react-icons/lu";
 import Button from "../../../../components/common/Button";
+import { getCourseStatus } from "../../utils/courseStatus";
 
 // ======================================================
 // CourseCard Component (การ์ดแสดงคอร์สเรียน)
 // ======================================================
 // ใช้งานร่วมกันได้ทุกหน้าและทุก Role:
-// - Guest: แสดงรายละเอียด, ผู้สอน, Badge ฟรี, ปุ่ม "ดูรายละเอียด"
+// - Guest: แสดงรายละเอียด, ผู้สอน, ปุ่ม "ดูรายละเอียด"
 // - Student: แสดงสถานะการลงทะเบียน, ปุ่ม "เข้าสู่ห้องเรียน" หรือ "ลงทะเบียนเรียน"
 // - Instructor: แสดงจำนวนนักเรียน, ปุ่ม "จัดการคอร์ส"
 // - Admin: แสดงสถานะคอร์ส, ปุ่มตรวจสอบรายละเอียด
@@ -34,8 +35,11 @@ function CourseCard({
     cover_image,
     thumbnail_url,
     is_enrolled = false,
-    category = "IoT & Smart City",
   } = course;
+  // ใช้ชื่อหมวดจริงจากฐานข้อมูล ถ้าไม่มีหมวดก็ไม่แสดงป้าย (เดิมใส่ "IoT & Smart City" ตายตัว)
+  const category = course.category_name || course.category || null;
+  const status = getCourseStatus(course.status);
+  const showStatus = role === "instructor" || role === "admin";
 
   const [imageError, setImageError] = useState(false);
   const imageSrc = cover_image || thumbnail_url;
@@ -99,12 +103,17 @@ function CourseCard({
           )}
         </div>
 
-        {/* Badge "เรียนฟรี" เมื่อเป็นคอร์สสาธารณะ */}
-        <div className="absolute bottom-3 right-3">
-          <span className="rounded-lg bg-[#ABD1C6] px-2.5 py-1 text-xs font-black text-[#20302C] shadow-sm">
-            เรียนฟรี
-          </span>
-        </div>
+        {/* ป้ายสถานะคอร์ส (เฉพาะผู้สอน/แอดมิน) — เดิมเป็นป้าย "เรียนฟรี" ที่ใส่ไว้ตายตัว */}
+        {showStatus && (
+          <div className="absolute bottom-3 right-3">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-sm ${status.className}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+              {status.label}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 2. เนื้อหาของการ์ด */}
@@ -228,7 +237,7 @@ function CourseCard({
                 size="sm"
                 fullWidth
               >
-                ดูห้องเรียน
+                ดูคอร์ส
               </Button>
               <Button
                 to={targetManageLink}
@@ -248,7 +257,7 @@ function CourseCard({
               size="sm"
               fullWidth
             >
-              ตรวจสอบห้องเรียน
+              ตรวจสอบคอร์ส
             </Button>
           )}
         </div>
