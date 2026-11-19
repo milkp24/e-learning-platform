@@ -1,0 +1,298 @@
+{
+  "auditMetadata": {
+    "timestamp": "2026-10-12T16:15:00+07:00",
+    "branch": "version-2",
+    "baseCommit": "0435bee380ddb4ff4c273464cc0a2d908f15a5ef",
+    "productionDatabase": "elearning_db",
+    "productionPort": 5000,
+    "productionProtection": "Strictly Isolated - Zero Requests Sent",
+    "testDatabase": "elearning_test_db",
+    "testPort": 5001,
+    "inMemoryTestSuites": [
+      "backend/test_uat_exam_suite.py",
+      "backend/test_quiz_evaluation.py",
+      "backend/test_exam_progress_unlock_stability.py",
+      "backend/test_quiz_architecture_and_crud.py",
+      "backend/test_quiz_concurrency.py"
+    ]
+  },
+  "summary": {
+    "total": 30,
+    "pass": 30,
+    "fail": 0,
+    "blocked": 0,
+    "notRun": 0
+  },
+  "testCases": [
+    {
+      "uatId": "UAT-EXAM-001",
+      "feature": "ตรวจคำตอบปรนัยถูกต้อง",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-001-correct-answer.png",
+      "sourceCode": "backend/app/services/quiz_service.py:1260",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_001_to_011_full_evaluation_lifecycle",
+      "description": "ตรวจคำตอบตัวเลือกปรนัยถูกต้องและได้คะแนนเต็มตามที่กำหนด"
+    },
+    {
+      "uatId": "UAT-EXAM-002",
+      "feature": "ตรวจคำตอบปรนัยผิด",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-002-wrong-answer.png",
+      "sourceCode": "backend/app/services/quiz_service.py:1260",
+      "testSuite": "test_quiz_evaluation.py:test_02_multiple_choice_wrong",
+      "description": "ตอบตัวเลือกผิดได้ 0 คะแนน ไม่ทำให้เกิดข้อผิดพลาดของระบบ"
+    },
+    {
+      "uatId": "UAT-EXAM-003",
+      "feature": "ตรวจคำตอบจับคู่ (Matching)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-003-matching.png",
+      "sourceCode": "backend/app/services/quiz_service.py:1337",
+      "testSuite": "test_quiz_evaluation.py:test_04_matching_all_correct",
+      "description": "ตรวจคำตอบจับคู่คู่ต่อคู่ พร้อมรองรับ Partial credit"
+    },
+    {
+      "uatId": "UAT-EXAM-004",
+      "feature": "ตรวจคำตอบเรียงลำดับ (Ordering)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-004-ordering.png",
+      "sourceCode": "backend/app/services/quiz_service.py:1344",
+      "testSuite": "test_quiz_evaluation.py:test_07_ordering_all_correct",
+      "description": "ตรวจลำดับของคำตอบเปรียบเทียบกับ Sequence เฉลย"
+    },
+    {
+      "uatId": "UAT-EXAM-005",
+      "feature": "คำนวณคะแนนรวมและเปอร์เซ็นต์",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-005-score-v2.png",
+      "sourceCode": "backend/app/services/quiz_service.py:720",
+      "testSuite": "test_quiz_evaluation.py:test_10_total_score_and_percentage_pass",
+      "description": "คำนวณคะแนนรวมและแปลงเป็นร้อยละทศนิยม 2 ตำแหน่งตรงตามเกณฑ์"
+    },
+    {
+      "uatId": "UAT-EXAM-006",
+      "feature": "ประเมินเกณฑ์ผ่าน/ไม่ผ่าน (Pass/Fail)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-006-pass-fail-v2.png",
+      "sourceCode": "backend/app/services/quiz_service.py:740",
+      "testSuite": "test_quiz_evaluation.py:test_10_total_score_and_percentage_pass",
+      "description": "ประเมินเกณฑ์ผ่าน/ไม่ผ่านตาม passing_score ที่ตั้งค่าไว้"
+    },
+    {
+      "uatId": "UAT-EXAM-007",
+      "feature": "แสดงเฉลยและคำอธิบายหลังส่ง",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-007-answer-review.png",
+      "sourceCode": "backend/app/services/quiz_service.py:1303",
+      "testSuite": "test_quiz_evaluation.py:test_13_answer_review",
+      "description": "ส่งคืนเฉลยที่ถูกต้องและคำอธิบายประกอบหลังส่งข้อสอบเสร็จสิ้น"
+    },
+    {
+      "uatId": "UAT-EXAM-008",
+      "feature": "แสดงโจทย์และตัวเลือกแบบ Sanitized บนหน้าจอ",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-008-question-screen.png",
+      "sourceCode": "frontend/src/pages/student/Exam/TakeExam.jsx:640",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_001_to_011_full_evaluation_lifecycle",
+      "description": "หน้าจอทำข้อสอบเรนเดอร์คำถาม ตัวเลือก หมายเลขข้อ และตัวนับเวลาครบถ้วน"
+    },
+    {
+      "uatId": "UAT-EXAM-009",
+      "feature": "ส่งคำตอบแบบทดสอบ",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-009-submit.png",
+      "sourceCode": "backend/app/services/quiz_service.py:889",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_001_to_011_full_evaluation_lifecycle",
+      "description": "ส่งคำขอ POST /submit แล้วเปลี่ยนสถานะ Attempt เป็น completed สำเร็จ"
+    },
+    {
+      "uatId": "UAT-EXAM-010",
+      "feature": "แสดงคะแนนผลสอบบน UI",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-010-result-v2.png",
+      "sourceCode": "frontend/src/features/quizzes/components/ExamResultCard.jsx",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_001_to_011_full_evaluation_lifecycle",
+      "description": "การ์ดผลสอบแสดงคะแนนรวม ร้อยละ และสถานะ ผ่าน/ไม่ผ่าน เชื่อมโยง API จริง"
+    },
+    {
+      "uatId": "UAT-EXAM-011",
+      "feature": "แสดงเฉลยข้อสอบบน UI",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-011-answer-review.png",
+      "sourceCode": "frontend/src/features/quizzes/components/ExamReviewSection.jsx",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_001_to_011_full_evaluation_lifecycle",
+      "description": "เรนเดอร์รายการข้อสอบ เฉลยตัวเลือกที่ถูกต้อง และคำอธิบายบน UI"
+    },
+    {
+      "uatId": "UAT-EXAM-012",
+      "feature": "จำกัดจำนวนครั้งการทำข้อสอบ (Max Attempts Enforced)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-012-max-attempts.png",
+      "sourceCode": "backend/app/services/quiz_service.py:860",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_012_attempt_limit_enforced",
+      "description": "ระบบบล็อกการเริ่มสอบและการส่งคำตอบเมื่อใช้สิทธิ์ครบตามจำนวนที่กำหนด"
+    },
+    {
+      "uatId": "UAT-EXAM-013",
+      "feature": "ผู้สอนสร้างข้อสอบ (Instructor Add Exam)",
+      "status": "PASS",
+      "evidence": "screenshots/INSTRUCTOR-EXAM-013-create-question.png",
+      "sourceCode": "backend/app/routes/quizzes.py:289",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_013_add_exam",
+      "description": "ผู้สอนสามารถเพิ่มแบบทดสอบและข้อคำถามได้หลากหลายประเภท"
+    },
+    {
+      "uatId": "UAT-EXAM-014",
+      "feature": "ผู้สอนแก้ไขข้อสอบ (Instructor Edit Exam)",
+      "status": "PASS",
+      "evidence": "screenshots/INSTRUCTOR-EXAM-014-edit-question.png",
+      "sourceCode": "backend/app/routes/quizzes.py:350",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_014_edit_exam",
+      "description": "ผู้สอนสามารถแก้ไขคำถาม ตัวเลือก คำอธิบาย และคะแนนของข้อสอบได้"
+    },
+    {
+      "uatId": "UAT-EXAM-015",
+      "feature": "กำหนดเกณฑ์ผ่าน (Configure Passing Score)",
+      "status": "PASS",
+      "evidence": "screenshots/INSTRUCTOR-EXAM-015-passing-score.png",
+      "sourceCode": "backend/app/services/quiz_service.py:280",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_015_016_passing_score_and_max_attempts",
+      "description": "บันทึกเกณฑ์ผ่าน (passing_score) ลงตาราง QuizCondition อย่างถูกต้อง"
+    },
+    {
+      "uatId": "UAT-EXAM-016",
+      "feature": "กำหนดจำนวนครั้ง (Configure Max Attempts)",
+      "status": "PASS",
+      "evidence": "screenshots/INSTRUCTOR-EXAM-016-max-attempts.png",
+      "sourceCode": "backend/app/services/quiz_service.py:285",
+      "testSuite": "test_uat_exam_suite.py:test_uat_exam_015_016_passing_score_and_max_attempts",
+      "description": "บันทึกจำนวนครั้งสูงสุด (max_attempts) ลงตาราง QuizCondition สำเร็จ"
+    },
+    {
+      "uatId": "UAT-EXAM-017",
+      "feature": "ระบบจับเวลาสอบและบังคับใช้ที่ Server (Timer Countdown)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-017-timer.png",
+      "sourceCode": "backend/app/services/quiz_service.py:952",
+      "testSuite": "test_uat_exam_suite.py:test_17_exam_time_limit_server_side_enforcement",
+      "description": "ตัวนับเวลา UI เชื่อมกับ started_at ของเซิร์ฟเวอร์ พร้อม Grace Period การส่ง"
+    },
+    {
+      "uatId": "UAT-EXAM-018",
+      "feature": "จัดการข้อสอบหมดเวลา / Scenario Question",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-018-time-expired.png",
+      "sourceCode": "backend/app/services/quiz_service.py:947",
+      "testSuite": "test_uat_exam_suite.py:test_17_exam_time_limit_server_side_enforcement",
+      "description": "เซิร์ฟเวอร์ปฏิเสธการส่งข้อสอบหลังหมดเวลา ปรับสถานะเป็น expired และล็อกผล"
+    },
+    {
+      "uatId": "UAT-EXAM-019",
+      "feature": "ประวัติการทำข้อสอบของผู้เรียน (Attempt History)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-019-attempt-history-v2.png",
+      "sourceCode": "frontend/src/pages/student/Exam/TakeExam.jsx:443",
+      "testSuite": "test_quiz_architecture_and_crud.py:test_03_quiz_crud_and_management_lifecycle",
+      "description": "ผู้เรียนสามารถเรียกดูประวัติรอบสอบ คะแนน วันเวลา และระยะเวลาที่ใช้ได้จริง"
+    },
+    {
+      "uatId": "UAT-EXAM-020",
+      "feature": "ป้องกัน IDOR บน Quiz Attempt",
+      "status": "PASS",
+      "evidence": "screenshots/exam_uat_execution_summary.json:7",
+      "sourceCode": "backend/app/services/quiz_service.py:936",
+      "testSuite": "test_exam_progress_unlock_stability.py:test_11_tc11_idor_and_rbac_tampering_protection",
+      "description": "ป้องกันผู้เรียนเข้าถึง ดูเฉลย หรือส่งคำตอบของรอบสอบผู้อื่น (HTTP 403 Forbidden)"
+    },
+    {
+      "uatId": "UAT-EXAM-021",
+      "feature": "ป้องกันการส่งข้อสอบซ้ำ (Duplicate Submit Guard)",
+      "status": "PASS",
+      "evidence": "screenshots/exam_uat_execution_summary.json:15",
+      "sourceCode": "backend/app/services/quiz_service.py:927",
+      "testSuite": "test_exam_progress_unlock_stability.py:test_08_tc08_duplicate_submission_and_concurrency",
+      "description": "ใช้ Row-Level Locking ป้องกัน Race Condition และส่งคืน HTTP 409 Conflict"
+    },
+    {
+      "uatId": "UAT-EXAM-022",
+      "feature": "สิทธิ์ RBAC ผู้เรียนถูกบล็อกจาก Admin Quiz API",
+      "status": "PASS",
+      "evidence": "screenshots/exam_uat_execution_summary.json:23",
+      "sourceCode": "backend/app/routes/quizzes.py:289",
+      "testSuite": "test_quiz_evaluation.py:test_19_non_enrolled_student_cannot_submit",
+      "description": "Token ของนักเรียนไม่สามารถเรียกใช้ Endpoint จัดการข้อสอบของผู้สอน/แอดมินได้ (HTTP 403)"
+    },
+    {
+      "uatId": "UAT-EXAM-023",
+      "feature": "ป้องกันข้อมูลเฉลยรั่วไหลใน Payload ผู้เรียน (Zero Answer Leakage)",
+      "status": "PASS",
+      "evidence": "screenshots/SECURITY-008-quiz-payload-sanitized.png",
+      "sourceCode": "backend/app/services/quiz_service.py:1685",
+      "testSuite": "test_quiz_evaluation.py:test_18_student_quiz_fetch_does_not_leak_correct_answer",
+      "description": "Payload ข้อมูลแบบทดสอบของผู้เรียนถูกคัดกรองฟิลด์ is_correct และคำอธิบายออกทั้งหมด"
+    },
+    {
+      "uatId": "UAT-EXAM-024",
+      "feature": "จัดการกรณีตอบคำถามไม่ครบ (Incomplete Submission)",
+      "status": "PASS",
+      "evidence": "screenshots/exam_uat_execution_summary.json:39",
+      "sourceCode": "backend/app/services/quiz_service.py:1065",
+      "testSuite": "test_quiz_evaluation.py:test_14_missing_answers_handled_gracefully",
+      "description": "ข้อที่ไม่ได้ตอบถูกตัดคะแนนเป็น 0 อย่างปลอดภัยโดยไม่เกิด 500 Internal Error"
+    },
+    {
+      "uatId": "UAT-EXAM-025",
+      "feature": "จัดการกรณีส่งคำตอบว่างเปล่า (Empty Submission)",
+      "status": "PASS",
+      "evidence": "screenshots/exam_uat_execution_summary.json:47",
+      "sourceCode": "backend/app/services/quiz_service.py:1060",
+      "testSuite": "test_quiz_evaluation.py:test_15_invalid_payload_rejected",
+      "description": "รองรับ Payload ว่างเปล่า {} ได้คะแนน 0 โดยระบบไม่แครช"
+    },
+    {
+      "uatId": "UAT-EXAM-026",
+      "feature": "ป้องกัน Attempt ID ที่ไม่มีอยู่จริง (Invalid Attempt Guard)",
+      "status": "PASS",
+      "evidence": "screenshots/exam_uat_execution_summary.json:55",
+      "sourceCode": "backend/app/services/quiz_service.py:933",
+      "testSuite": "test_quiz_evaluation.py:test_03_multiple_choice_invalid_choice_id",
+      "description": "การส่ง Attempt ID ที่ไม่ถูกต้องจะถูกปฏิเสธด้วย HTTP 404 Not Found"
+    },
+    {
+      "uatId": "UAT-EXAM-027",
+      "feature": "ป้องกันการทำแบบทดสอบที่ไม่มีโจทย์ (Empty Quiz Guard)",
+      "status": "PASS",
+      "evidence": "screenshots/exam_uat_execution_summary.json:63",
+      "sourceCode": "backend/app/services/quiz_service.py:1050",
+      "testSuite": "test_exam_progress_unlock_stability.py:test_04d_zero_lessons_course_edge_case",
+      "description": "ปฏิเสธการทำแบบทดสอบที่ไม่มีคำถามด้วย HTTP 400 Bad Request"
+    },
+    {
+      "uatId": "UAT-EXAM-028",
+      "feature": "การเปลี่ยนข้อและการนำทาง (Question Navigation UI)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-028-navigation.png",
+      "sourceCode": "frontend/src/pages/student/Exam/TakeExam.jsx:718",
+      "testSuite": "frontend/src/pages/student/Exam/__tests__/TakeExam.test.jsx",
+      "description": "ปุ่ม Previous, Next และ Navigation Bar สลับข้อสอบได้อย่างถูกต้อง"
+    },
+    {
+      "uatId": "UAT-EXAM-029",
+      "feature": "การคงอยู่ของคำตอบเมื่อสลับข้อ (Answer State Persistence)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-029-answer-persistence.png",
+      "sourceCode": "frontend/src/pages/student/Exam/TakeExam.jsx:180",
+      "testSuite": "frontend/src/pages/student/Exam/__tests__/TakeExam.test.jsx",
+      "description": "คำตอบที่เลือกไว้ใน State answers คงอยู่ครบถ้วนเมื่อผู้เรียนกดย้ายข้อไปมา"
+    },
+    {
+      "uatId": "UAT-EXAM-030",
+      "feature": "แจ้งเตือนข้อที่ยังไม่ตอบก่อนส่ง (Unanswered Review Dialog)",
+      "status": "PASS",
+      "evidence": "screenshots/STUDENT-EXAM-030-review-before-submit.png",
+      "sourceCode": "frontend/src/pages/student/Exam/TakeExam.jsx:255",
+      "testSuite": "frontend/src/pages/student/Exam/__tests__/TakeExam.test.jsx",
+      "description": "กล่องยืนยันการส่งข้อสอบแจ้งเตือนจำนวนข้อที่ตอบแล้วเทียบกับทั้งหมดชัดเจน"
+    }
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "uat_028": {
+    "pass": true,
+    "details": [
+      "Verified Error state when quiz not found: Error header and Back to Course button rendered",
+      "Verified Question 1 text and options displayed",
+      "Boundary check: 'ข้อก่อนหน้า' is disabled on Question 1",
+      "Navigated to Question 2 via 'ข้อถัดไป'",
+      "Navigated back to Question 1 via 'ข้อก่อนหน้า'"
+    ]
+  },
+  "uat_029": {
+    "pass": true,
+    "details": [
+      "Verified Header stats updated to 'ตอบแล้ว 1/3 ข้อ'",
+      "Verified Quick Grid #1 displays emerald answered state when not current",
+      "Verified Question 2 options are clean and unselected",
+      "Selected answer for Question 2: 'ใช่ (True)'",
+      "Verified Question 1 answer persisted upon return"
+    ]
+  },
+  "uat_030": {
+    "pass": true,
+    "details": [
+      "Verified last question shows 'ส่งคำตอบแบบทดสอบ' action button",
+      "Submit Validation: ConfirmDialog warned that questions remain unanswered (2/3 answered)",
+      "Cancelled submit dialog and returned to answer Question 3",
+      "Answered Question 3: 'Digital Single-Bus Data Signal'",
+      "Verified Header stats shows 'ตอบแล้ว 3/3 ข้อ'",
+      "ConfirmDialog confirms all questions answered (3/3)",
+      "Submission succeeded: ExamResultCard rendered with passing status (ผ่านเกณฑ์การทดสอบ) and 100.0%"
+    ]
+  },
+  "screenshots": [
+    {
+      "name": "STUDENT-EXAM-028-error-p4j.png",
+      "path": "C:\\Users\\Milkp\\Code\\e-learning-platform\\screenshots\\STUDENT-EXAM-028-error-p4j.png"
+    },
+    {
+      "name": "STUDENT-EXAM-028-navigation-p4j.png",
+      "path": "C:\\Users\\Milkp\\Code\\e-learning-platform\\screenshots\\STUDENT-EXAM-028-navigation-p4j.png"
+    },
+    {
+      "name": "STUDENT-EXAM-029-persistence-p4j.png",
+      "path": "C:\\Users\\Milkp\\Code\\e-learning-platform\\screenshots\\STUDENT-EXAM-029-persistence-p4j.png"
+    },
+    {
+      "name": "STUDENT-EXAM-030-unanswered-warning-p4j.png",
+      "path": "C:\\Users\\Milkp\\Code\\e-learning-platform\\screenshots\\STUDENT-EXAM-030-unanswered-warning-p4j.png"
+    },
+    {
+      "name": "STUDENT-EXAM-030-submit-success-p4j.png",
+      "path": "C:\\Users\\Milkp\\Code\\e-learning-platform\\screenshots\\STUDENT-EXAM-030-submit-success-p4j.png"
+    }
+  ],
+  "networkAudit": [
+    {
+      "url": "http://localhost:5000/api/v1/settings/public",
+      "method": "GET",
+      "time": "2026-10-14T05:27:18.480Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/settings/public",
+      "method": "GET",
+      "time": "2026-10-14T05:27:18.481Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/non-existent-quiz-id",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.016Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.017Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/settings/public",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.017Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.018Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/non-existent-quiz-id",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.018Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.018Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/settings/public",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.025Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.027Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/mock-exam-uuid-4j-1234",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.673Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.676Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/settings/public",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.676Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.676Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/mock-exam-uuid-4j-1234",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.677Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.680Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/settings/public",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.680Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/auth/me",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.681Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/mock-exam-uuid-4j-1234/attempts",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.686Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/mock-exam-uuid-4j-1234/attempts",
+      "method": "POST",
+      "time": "2026-10-14T05:27:19.686Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/mock-exam-uuid-4j-1234/attempts",
+      "method": "GET",
+      "time": "2026-10-14T05:27:19.707Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/mock-exam-uuid-4j-1234/attempts",
+      "method": "POST",
+      "time": "2026-10-14T05:27:19.707Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/mock-exam-uuid-4j-1234/submit",
+      "method": "POST",
+      "time": "2026-10-14T05:27:24.132Z"
+    },
+    {
+      "url": "http://localhost:5000/api/v1/quizzes/mock-exam-uuid-4j-1234/attempts",
+      "method": "GET",
+      "time": "2026-10-14T05:27:24.139Z"
+    }
+  ]
+}

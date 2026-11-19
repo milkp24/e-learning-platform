@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-10-08T09:20:38.371Z",
+  "targetQuizId": "8ed21146-fad4-4220-bc93-9957cccddb84",
+  "quizTitle": "UAT Comprehensive Exam 6580",
+  "securityResults": [
+    {
+      "test": "UAT-EXAM-020: IDOR Prevention (Accessing another student attempt review)",
+      "endpoint": "GET /quizzes/.../attempts/1c3196d4-c7da-4c88-93e1-25f49997d43a/review",
+      "input": "Student A Token requesting Student B Attempt",
+      "actualStatus": 403,
+      "expected": "403 Forbidden",
+      "pass": true
+    },
+    {
+      "test": "UAT-EXAM-021: Duplicate Submit Guard",
+      "endpoint": "POST /quizzes/.../submit",
+      "input": "Submitting already completed attempt_id",
+      "actualStatus": 409,
+      "expected": "409 Conflict",
+      "pass": true
+    },
+    {
+      "test": "UAT-EXAM-022: RBAC Authorization Guard",
+      "endpoint": "POST /quizzes",
+      "input": "Student Token attempting Create Quiz",
+      "actualStatus": 403,
+      "expected": "403 Forbidden",
+      "pass": true
+    },
+    {
+      "test": "UAT-EXAM-023: Zero Answer Leakage in Student Payload",
+      "endpoint": "GET /quizzes/8ed21146-fad4-4220-bc93-9957cccddb84",
+      "input": "Student Token inspecting sanitized question payload",
+      "actualStatus": 200,
+      "expected": "No is_correct / explanation in payload",
+      "pass": true
+    },
+    {
+      "test": "UAT-EXAM-024: Incomplete Answer Handling",
+      "endpoint": "POST /quizzes/.../submit",
+      "input": "Submitted with 0 answered questions",
+      "actualStatus": 200,
+      "expected": "200 OK (Graceful 0-score calculation)",
+      "pass": true
+    },
+    {
+      "test": "UAT-EXAM-025: Empty Submission Handling",
+      "endpoint": "POST /quizzes/.../submit",
+      "input": "Empty answers dict {}",
+      "actualStatus": 200,
+      "expected": "200 OK (Graceful handling)",
+      "pass": true
+    },
+    {
+      "test": "UAT-EXAM-026: Invalid / Expired Attempt Guard",
+      "endpoint": "POST /quizzes/.../submit",
+      "input": "Non-existent attempt UUID",
+      "actualStatus": 404,
+      "expected": "404 Not Found",
+      "pass": true
+    },
+    {
+      "test": "UAT-EXAM-027: Empty Quiz Guard",
+      "endpoint": "POST /quizzes/.../submit",
+      "input": "Submitting quiz with 0 questions",
+      "actualStatus": 400,
+      "expected": "400 Bad Request",
+      "pass": true
+    },
+    {
+      "test": "Security Deep Check: Un-enrolled Course Access Guard",
+      "endpoint": "POST /quizzes/2fb74ba3-c1f1-43ea-b934-608328e8210e/attempts",
+      "input": "Student attempting quiz in un-enrolled course",
+      "actualStatus": 403,
+      "expected": "403 Forbidden",
+      "pass": true
+    },
+    {
+      "test": "Security Deep Check: Question Authoring RBAC",
+      "endpoint": "POST /quizzes/.../questions",
+      "input": "Student Token attempting to add question",
+      "actualStatus": 403,
+      "expected": "403 Forbidden",
+      "pass": true
+    },
+    {
+      "test": "Security Deep Check: Quiz Update RBAC",
+      "endpoint": "PUT /quizzes/...",
+      "input": "Student Token attempting to update quiz setting",
+      "actualStatus": 403,
+      "expected": "403 Forbidden",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,763 @@
+{
+  "uatCases": [
+    {
+      "uatId": "UAT-EXAM-013",
+      "feature": "Instructor เพิ่มข้อสอบ",
+      "status": "PASS",
+      "evidence": "INSTRUCTOR-EXAM-013-create-question.png",
+      "expected": "ข้อสอบถูกเพิ่มใน Quiz, มี Type, Question text, Choices, Answer, Points",
+      "actual": "เพิ่มข้อสอบ 3 ประเภทสำเร็จ (Multiple Choice 5 คะแนน, Matching 5 คะแนน, Ordering 5 คะแนน) รวม 15 คะแนน",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-014",
+      "feature": "Instructor แก้ไขข้อสอบ",
+      "status": "PASS",
+      "evidence": "INSTRUCTOR-EXAM-014-edit-question.png",
+      "expected": "ข้อมูลแก้ไขถูกบันทึกจริง ข้อมูลยังคงอยู่หลังแก้ไข",
+      "actual": "แก้ไขคำอธิบายข้อสอบและบันทึกสำเร็จ Status 200: \"JavaScript เป็นภาษาหลักที่รันบน Web Browser (อัปเดตคำอธิบายเพิ่มเติม)\"",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-015",
+      "feature": "ตั้งค่าเกณฑ์ผ่าน",
+      "status": "PASS",
+      "evidence": "INSTRUCTOR-EXAM-015-passing-score.png",
+      "expected": "ระบบบันทึกเกณฑ์ผ่าน และนำไปใช้ในการคำนวณ Pass/Fail จริง",
+      "actual": "แก้ไขเกณฑ์ผ่านจาก 70% เป็น 80% สำเร็จ และตารางแสดงค่า 80%",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-016",
+      "feature": "ตั้งค่าจำนวนครั้ง",
+      "status": "PASS",
+      "evidence": "INSTRUCTOR-EXAM-016-max-attempts.png",
+      "expected": "ระบบจำกัดจำนวนครั้งตามค่าที่ตั้งไว้",
+      "actual": "แก้ไข Max Attempts จาก 3 เป็น 2 ครั้งสำเร็จ และตารางแสดงค่า 2 ครั้ง",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-008",
+      "feature": "แสดงโจทย์ข้อสอบ",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-008-question-screen.png",
+      "expected": "แสดงข้อมูลครบ: Question, Choices, Question number, Navigation, Instruction, Timer",
+      "actual": "หน้าจอแสดงโจทย์ครบถ้วน: หมายเลขข้อ 1/3, ชนิดข้อสอบ, คะแนน (5 คะแนน), ตัวเลือก 4 ข้อ, ปุ่มถัดไป, และตัวนับเวลา",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-017",
+      "feature": "ระบบจับเวลาสอบ (Timer Countdown)",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-017-timer.png",
+      "expected": "ระบบนับเวลาถอยหลังอิงเวลาจาก Backend (Server Source of Truth) และแสดงเวลาที่เหลือชัดเจน",
+      "actual": "ตัวจับเวลานับถอยหลัง 15:00 นาที อิงเวลาจาก Server Attempt Started At",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-009",
+      "feature": "ส่งคำตอบ",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-009-submit.png",
+      "expected": "Request สำเร็จ, Attempt เปลี่ยน State, UI เปลี่ยน State, Result แสดงผล",
+      "actual": "กดยืนยันส่งคำตอบแล้วเปลี่ยนสถานะ Attempt เป็น completed และแสดงหน้าผลลัพธ์ทันที",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-001",
+      "feature": "ตรวจคำตอบปรนัยถูกต้อง",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-001-correct-answer.png",
+      "expected": "ระบบตรวจว่าคำตอบถูก และคำนวณคะแนนถูกต้อง",
+      "actual": "เลือก JavaScript (ตอบถูก) -> ได้คะแนนเต็ม 5/5 ในข้อปรนัย คะแนนรวม 11.67/15",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-003",
+      "feature": "ตรวจคำตอบจับคู่",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-003-matching.png",
+      "expected": "ระบบตรวจความถูกต้องของแต่ละคู่และคำนวณคะแนนถูกต้อง รองรับ Partial scoring",
+      "actual": "จับคู่ HTTP->80 และ HTTPS->443 ถูกต้องครบถ้วน ได้คะแนน 5/5",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-004",
+      "feature": "ตรวจคำตอบเรียงลำดับ",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-004-ordering.png",
+      "expected": "ระบบตรวจลำดับและคำนวณคะแนนถูกต้อง",
+      "actual": "จัดเรียง FROM -> WHERE -> SELECT ถูกต้องครบถ้วน ได้คะแนน 5/5",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-005",
+      "feature": "คำนวณคะแนนรวม",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-005-score-v2.png",
+      "expected": "คะแนนรวมตรงกับ Algorithm จริง",
+      "actual": "คำนวณคะแนนรวม 11.67/15.0 คิดเป็น 77.8% (ข้อ 1 ปรนัย: 5/5, ข้อ 2 จับคู่: 5/5, ข้อ 3 เรียงลำดับ Partial: 1.67/5) ตรงกับ Backend Score Engine",
+      "notes": "Controlled Rerun Evidence (Phase 4.8C): ภาพจากการทดสอบซ้ำแบบควบคุม (Quiz ID: 8d7a0670-04a7-4754-840c-62cc8b7019ce, Attempt 1: 0549974e-4894-407f-9acb-5b9a38c2a062) ใน elearning_test_db ไม่ใช่หลักฐานย้อนหลังของการสอบเดิม (ภาพ baseline เดิม: STUDENT-EXAM-005-score.png)"
+    },
+    {
+      "uatId": "UAT-EXAM-006",
+      "feature": "ตรวจเกณฑ์ผ่าน",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-006-pass-fail-v2.png",
+      "expected": "สถานะ Pass/Fail ต้องตรงกับ Passing Score จริง",
+      "actual": "คะแนน 77.8% ต่ำกว่าเกณฑ์ผ่าน 80% ระบบแสดงสถานะ \"ยังไม่ผ่านเกณฑ์การทดสอบ\" (is_passed: false) ตรงตาม Passing Score ของแบบทดสอบ",
+      "notes": "Controlled Rerun Evidence (Phase 4.8C): ภาพจากการทดสอบซ้ำแบบควบคุม (Quiz ID: 8d7a0670-04a7-4754-840c-62cc8b7019ce, Attempt 1: 0549974e-4894-407f-9acb-5b9a38c2a062) ใน elearning_test_db ไม่ใช่หลักฐานย้อนหลังของการสอบเดิม (ภาพ baseline เดิม: STUDENT-EXAM-006-pass-fail.png)"
+    },
+    {
+      "uatId": "UAT-EXAM-010",
+      "feature": "แสดงผลคะแนน",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-010-result-v2.png",
+      "expected": "คะแนนที่แสดงตรงกับคะแนน Backend (Score, Total, Percentage, Pass/Fail)",
+      "actual": "หน้าจอแสดงผลคะแนน 77.8%, 11.67/15 คะแนน, ยังไม่ผ่านเกณฑ์, ครั้งที่ 1 ตรงกับ Backend ผลสอบจริง",
+      "notes": "Controlled Rerun Evidence (Phase 4.8C): ภาพจากการทดสอบซ้ำแบบควบคุม (Quiz ID: 8d7a0670-04a7-4754-840c-62cc8b7019ce, Attempt 1: 0549974e-4894-407f-9acb-5b9a38c2a062) ใน elearning_test_db ไม่ใช่หลักฐานย้อนหลังของการสอบเดิม (ภาพ baseline เดิม: STUDENT-EXAM-010-result.png)"
+    },
+    {
+      "uatId": "UAT-EXAM-007",
+      "feature": "แสดงเฉลย",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-007-answer-review.png",
+      "expected": "แสดงข้อมูลเฉลย คำอธิบาย และการทบทวนคำตอบถูกต้องหลังส่งข้อสอบ",
+      "actual": "ส่วนเฉลยแสดงคำตอบที่ถูกต้อง คำตอบของผู้เรียน และคำอธิบายข้อสอบครบถ้วนทุกข้อ",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-011",
+      "feature": "แสดงเฉลยทันที",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-011-answer-review.png",
+      "expected": "แสดงเฉลยและคำอธิบายทันทีหลัง Submit ตาม Implementation จริง",
+      "actual": "ระบบแสดงผลเฉลยทันที (Immediate Review) บนหน้า ExamResultCard และ ExamReviewSection",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-002",
+      "feature": "ตรวจคำตอบปรนัยผิด",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-002-wrong-answer.png",
+      "expected": "ระบบระบุว่าผิด และคำนวณคะแนนถูกต้อง (คะแนนไม่ผ่าน)",
+      "actual": "เลือกตัวเลือกผิด (Python) -> ระบบให้ 0 คะแนน และแสดงสถานะ \"ยังไม่ผ่านเกณฑ์การทดสอบ\"",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-012",
+      "feature": "จำกัดจำนวนครั้ง",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-012-max-attempts.png",
+      "expected": "ถ้า Max Attempts = 2: Attempt 1 = allowed, Attempt 2 = allowed, Attempt 3 = rejected",
+      "actual": "ทำข้อสอบครบ 2 ครั้งแล้ว ระบบบล็อกการเริ่ม Attempt ที่ 3 พร้อมแสดงแถบเตือน \"คุณใช้สิทธิ์ทำแบบทดสอบครบแล้ว\" และซ่อนปุ่มทำข้อสอบซ้ำ",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-019",
+      "feature": "ประวัติการทำแบบทดสอบ (Attempt History)",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-019-attempt-history-v2.png",
+      "expected": "ระบบบันทึกและแสดงประวัติการทำข้อสอบย้อนหลังทุกครั้ง พร้อมคะแนน วันเวลา และสถานะ",
+      "actual": "แสดงตารางประวัติการสอบทั้ง 2 ครั้งของนักเรียนอย่างละเอียด (ครั้งที่ 1: 11.67/15 ไม่ผ่าน 77.8%, ครั้งที่ 2: 0/15 ไม่ผ่าน 0%)",
+      "notes": "Controlled Rerun Evidence (Phase 4.8C): ภาพจากการทดสอบซ้ำแบบควบคุม (Quiz ID: 8d7a0670-04a7-4754-840c-62cc8b7019ce, Attempt 1 & 2) ใน elearning_test_db ไม่ใช่หลักฐานย้อนหลังของการสอบเดิม (ภาพ baseline เดิม: STUDENT-EXAM-019-attempt-history.png)"
+    },
+    {
+      "uatId": "UAT-EXAM-018",
+      "feature": "คำถามประเภทสถานการณ์จำลอง (Scenario Question)",
+      "status": "PASS",
+      "evidence": "STUDENT-EXAM-018-scenario.png",
+      "expected": "ระบบรองรับคำถามเชิงสถานการณ์ พร้อมบริบทวิเคราะห์และการประเมินผล",
+      "actual": "หน้าจอแสดงข้อสอบประเภท Scenario พร้อมส่วน Context/Scenario Box และตัวเลือกวิเคราะห์สถานการณ์",
+      "notes": ""
+    },
+    {
+      "uatId": "UAT-EXAM-020",
+      "feature": "การตรวจสอบความปลอดภัยของระบบข้อสอบ (Security Hardening)",
+      "status": "PASS",
+      "evidence": "INSPECTION-VERIFIED",
+      "expected": "IDOR 403, Duplicate Submit 409, Unauthorized 403, Zero Answer Leakage in Student Payload",
+      "actual": "ผ่านการตรวจสอบความปลอดภัยครบทั้ง 4 ด้าน: ป้องกัน IDOR, ป้องกัน Duplicate Submit, ป้องกันสิทธิ์นักเรียน, และซ่อนเฉลยก่อนส่งข้อสอบ 100%",
+      "notes": ""
+    }
+  ],
+  "backendVerifications": [
+    {
+      "action": "Create Quiz",
+      "endpoint": "/api/v1/quizzes",
+      "method": "POST",
+      "status": 201,
+      "data": {
+        "exam": {
+          "condition": {
+            "condition_id": "5b78b195-03d7-479f-9787-a1918afbcf61",
+            "max_attempts": 3,
+            "passing_score": 70,
+            "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+            "time_limit_minutes": 15
+          },
+          "course_id": "b4959ecc-7c5d-4eb8-8952-a5a29489fd94",
+          "created_at": "2026-10-08T05:58:55.078917+00:00",
+          "description": "แบบทดสอบประเมินผล UAT ข้อสอบปรนัย จับคู่ และเรียงลำดับ",
+          "lesson_id": null,
+          "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+          "title": "UAT Assessment Exam 4910"
+        },
+        "message": "Quiz created successfully.",
+        "quiz": {
+          "condition": {
+            "condition_id": "5b78b195-03d7-479f-9787-a1918afbcf61",
+            "max_attempts": 3,
+            "passing_score": 70,
+            "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+            "time_limit_minutes": 15
+          },
+          "course_id": "b4959ecc-7c5d-4eb8-8952-a5a29489fd94",
+          "created_at": "2026-10-08T05:58:55.078917+00:00",
+          "description": "แบบทดสอบประเมินผล UAT ข้อสอบปรนัย จับคู่ และเรียงลำดับ",
+          "lesson_id": null,
+          "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+          "title": "UAT Assessment Exam 4910"
+        }
+      }
+    },
+    {
+      "action": "Add Multiple Choice Question",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51/questions",
+      "method": "POST",
+      "status": 201,
+      "data": {
+        "message": "Question added to quiz successfully.",
+        "order_no": 1,
+        "question": {
+          "chapter": null,
+          "concept": null,
+          "created_at": "2026-10-08T05:58:56.277304+00:00",
+          "difficulty": null,
+          "episode": null,
+          "explanation": "JavaScript เป็นภาษาหลักที่รันบน Web Browser",
+          "image_url": null,
+          "learning_objective": null,
+          "options": [
+            {
+              "image_url": null,
+              "is_correct": true,
+              "option_id": "07da27bd-656f-4897-a84c-82900a2d8f7e",
+              "option_text": "JavaScript",
+              "order_no": 1,
+              "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3"
+            },
+            {
+              "image_url": null,
+              "is_correct": false,
+              "option_id": "e9144da1-748e-4d10-b877-e71c893cbb3b",
+              "option_text": "Python",
+              "order_no": 2,
+              "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3"
+            },
+            {
+              "image_url": null,
+              "is_correct": false,
+              "option_id": "7ca30f00-4838-4abe-9013-e1cdb32b7eab",
+              "option_text": "C++",
+              "order_no": 3,
+              "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3"
+            },
+            {
+              "image_url": null,
+              "is_correct": false,
+              "option_id": "7c7c86bc-74e3-4985-be71-1ebfe558e45f",
+              "option_text": "Java",
+              "order_no": 4,
+              "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3"
+            }
+          ],
+          "points": 5,
+          "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3",
+          "question_text": "ภาษาคอมพิวเตอร์ใดใช้สำหรับทำงานบนเว็บเบราว์เซอร์เป็นหลัก?",
+          "question_type": "multiple_choice",
+          "scenario": null,
+          "skill": null
+        }
+      }
+    },
+    {
+      "action": "Add Matching Question",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51/questions",
+      "method": "POST",
+      "status": 201,
+      "data": {
+        "message": "Question added to quiz successfully.",
+        "order_no": 2,
+        "question": {
+          "chapter": null,
+          "concept": null,
+          "created_at": "2026-10-08T05:58:57.724919+00:00",
+          "difficulty": null,
+          "episode": null,
+          "explanation": "HTTP ใช้พอร์ต 80 และ HTTPS ใช้พอร์ต 443",
+          "image_url": null,
+          "learning_objective": null,
+          "options": [
+            {
+              "image_url": null,
+              "is_correct": true,
+              "option_id": "284f2758-e761-4b10-8532-65674e2c1f90",
+              "option_text": "HTTP -> 80",
+              "order_no": 1,
+              "question_id": "e2faae83-b999-4f35-99f6-e58e48f9506c"
+            },
+            {
+              "image_url": null,
+              "is_correct": true,
+              "option_id": "997ac390-6f2d-4384-b842-ea529cc89093",
+              "option_text": "HTTPS -> 443",
+              "order_no": 2,
+              "question_id": "e2faae83-b999-4f35-99f6-e58e48f9506c"
+            }
+          ],
+          "points": 5,
+          "question_id": "e2faae83-b999-4f35-99f6-e58e48f9506c",
+          "question_text": "จงจับคู่โปรโตคอลเครือข่ายกับพอร์ตมาตรฐานให้ถูกต้อง",
+          "question_type": "matching",
+          "scenario": null,
+          "skill": null
+        }
+      }
+    },
+    {
+      "action": "Add Ordering Question",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51/questions",
+      "method": "POST",
+      "status": 201,
+      "data": {
+        "message": "Question added to quiz successfully.",
+        "order_no": 3,
+        "question": {
+          "chapter": null,
+          "concept": null,
+          "created_at": "2026-10-08T05:58:59.172891+00:00",
+          "difficulty": null,
+          "episode": null,
+          "explanation": "Logical Query Processing เริ่มจาก FROM -> WHERE -> SELECT",
+          "image_url": null,
+          "learning_objective": null,
+          "options": [
+            {
+              "image_url": null,
+              "is_correct": true,
+              "option_id": "2089155f-7ed7-4f62-a104-10c5a595672e",
+              "option_text": "FROM",
+              "order_no": 1,
+              "question_id": "dc493684-6325-4c66-9373-e173c6e6ae27"
+            },
+            {
+              "image_url": null,
+              "is_correct": true,
+              "option_id": "f001e010-5001-4018-9cdb-021c77ece663",
+              "option_text": "WHERE",
+              "order_no": 2,
+              "question_id": "dc493684-6325-4c66-9373-e173c6e6ae27"
+            },
+            {
+              "image_url": null,
+              "is_correct": true,
+              "option_id": "c4176552-edde-402c-8578-cb8c80541a32",
+              "option_text": "SELECT",
+              "order_no": 3,
+              "question_id": "dc493684-6325-4c66-9373-e173c6e6ae27"
+            }
+          ],
+          "points": 5,
+          "question_id": "dc493684-6325-4c66-9373-e173c6e6ae27",
+          "question_text": "จงเรียงลำดับขั้นตอนการประมวลผลคำสั่ง SQL Query ตาม Logical Order",
+          "question_type": "ordering",
+          "scenario": null,
+          "skill": null
+        }
+      }
+    },
+    {
+      "action": "Edit Question 1",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51/questions/5c8fa05a-ebc5-48ef-963a-a0f1671903e3",
+      "method": "PUT",
+      "status": 200,
+      "data": {
+        "message": "Question updated successfully.",
+        "question": {
+          "chapter": null,
+          "concept": null,
+          "created_at": "2026-10-08T05:58:56.277304+00:00",
+          "difficulty": null,
+          "episode": null,
+          "explanation": "JavaScript เป็นภาษาหลักที่รันบน Web Browser (อัปเดตคำอธิบายเพิ่มเติม)",
+          "image_url": null,
+          "learning_objective": null,
+          "options": [
+            {
+              "image_url": null,
+              "is_correct": true,
+              "option_id": "9f45c143-c28b-4e6c-8883-714409e29a66",
+              "option_text": "JavaScript",
+              "order_no": 1,
+              "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3"
+            },
+            {
+              "image_url": null,
+              "is_correct": false,
+              "option_id": "7ca68f81-504a-457a-ba62-3e10b430345b",
+              "option_text": "Python",
+              "order_no": 2,
+              "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3"
+            },
+            {
+              "image_url": null,
+              "is_correct": false,
+              "option_id": "fab803c9-2f49-440a-99c1-c29369d595f9",
+              "option_text": "C++",
+              "order_no": 3,
+              "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3"
+            },
+            {
+              "image_url": null,
+              "is_correct": false,
+              "option_id": "ed5de9f4-8550-4097-b21f-399952afb180",
+              "option_text": "Java",
+              "order_no": 4,
+              "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3"
+            }
+          ],
+          "points": 5,
+          "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3",
+          "question_text": "ภาษาคอมพิวเตอร์ใดใช้สำหรับทำงานบนเว็บเบราว์เซอร์เป็นหลัก?",
+          "question_type": "multiple_choice",
+          "scenario": null,
+          "skill": null
+        }
+      }
+    },
+    {
+      "action": "Update Passing Score",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51",
+      "method": "PUT",
+      "status": 200,
+      "data": {
+        "exam": {
+          "condition": {
+            "condition_id": "5b78b195-03d7-479f-9787-a1918afbcf61",
+            "max_attempts": 3,
+            "passing_score": 80,
+            "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+            "time_limit_minutes": 15
+          },
+          "course_id": "b4959ecc-7c5d-4eb8-8952-a5a29489fd94",
+          "created_at": "2026-10-08T05:58:55.078917+00:00",
+          "description": "แบบทดสอบประเมินผล UAT ข้อสอบปรนัย จับคู่ และเรียงลำดับ",
+          "lesson_id": null,
+          "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+          "title": "UAT Assessment Exam 4910"
+        },
+        "message": "Quiz updated successfully.",
+        "quiz": {
+          "condition": {
+            "condition_id": "5b78b195-03d7-479f-9787-a1918afbcf61",
+            "max_attempts": 3,
+            "passing_score": 80,
+            "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+            "time_limit_minutes": 15
+          },
+          "course_id": "b4959ecc-7c5d-4eb8-8952-a5a29489fd94",
+          "created_at": "2026-10-08T05:58:55.078917+00:00",
+          "description": "แบบทดสอบประเมินผล UAT ข้อสอบปรนัย จับคู่ และเรียงลำดับ",
+          "lesson_id": null,
+          "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+          "title": "UAT Assessment Exam 4910"
+        }
+      }
+    },
+    {
+      "action": "Update Max Attempts",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51",
+      "method": "PUT",
+      "status": 200,
+      "data": {
+        "exam": {
+          "condition": {
+            "condition_id": "5b78b195-03d7-479f-9787-a1918afbcf61",
+            "max_attempts": 2,
+            "passing_score": 80,
+            "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+            "time_limit_minutes": 15
+          },
+          "course_id": "b4959ecc-7c5d-4eb8-8952-a5a29489fd94",
+          "created_at": "2026-10-08T05:58:55.078917+00:00",
+          "description": "แบบทดสอบประเมินผล UAT ข้อสอบปรนัย จับคู่ และเรียงลำดับ",
+          "lesson_id": null,
+          "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+          "title": "UAT Assessment Exam 4910"
+        },
+        "message": "Quiz updated successfully.",
+        "quiz": {
+          "condition": {
+            "condition_id": "5b78b195-03d7-479f-9787-a1918afbcf61",
+            "max_attempts": 2,
+            "passing_score": 80,
+            "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+            "time_limit_minutes": 15
+          },
+          "course_id": "b4959ecc-7c5d-4eb8-8952-a5a29489fd94",
+          "created_at": "2026-10-08T05:58:55.078917+00:00",
+          "description": "แบบทดสอบประเมินผล UAT ข้อสอบปรนัย จับคู่ และเรียงลำดับ",
+          "lesson_id": null,
+          "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+          "title": "UAT Assessment Exam 4910"
+        }
+      }
+    },
+    {
+      "action": "Start Quiz Attempt 1",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51/attempts",
+      "method": "POST",
+      "status": 200,
+      "data": {
+        "attempt": {
+          "attempt_id": "6b2a9eb7-ad3c-4b40-8aa8-127cd6fba114",
+          "expires_at": "2026-10-08T06:14:05.400650+00:00",
+          "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+          "started_at": "2026-10-08T05:59:05.400650+00:00",
+          "status": "in_progress",
+          "submitted_at": null,
+          "time_limit_minutes": 15,
+          "user_id": "db6d2cfe-4d38-4eeb-84c7-04091648321b"
+        },
+        "message": "Resumed active quiz attempt."
+      }
+    },
+    {
+      "action": "Submit Attempt 1 (Correct Answers)",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51/submit",
+      "method": "POST",
+      "status": 200,
+      "data": {
+        "attempt_id": "6b2a9eb7-ad3c-4b40-8aa8-127cd6fba114",
+        "attempt_number": 1,
+        "attempts_count": 1,
+        "concepts_to_review": [],
+        "correct_answers": [
+          "JavaScript",
+          [
+            "HTTP -> 80",
+            "HTTPS -> 443"
+          ],
+          [
+            "FROM",
+            "WHERE",
+            "SELECT"
+          ]
+        ],
+        "correct_count": 2,
+        "feedback": "คุณยังไม่ผ่านแบบทดสอบ ได้คะแนน 77.80% (เกณฑ์ผ่าน 80.00%) กรุณาลองใหม่อีกครั้ง",
+        "is_passed": false,
+        "max_attempts": 2,
+        "message": "ส่งแบบทดสอบและประมวลผลสำเร็จ",
+        "next_recommendation": "แนะนำให้ทบทวนบทเรียนและทำความเข้าใจแนวคิดที่ยังไม่ผ่าน ก่อนเริ่มทำแบบทดสอบใหม่อีกครั้ง",
+        "passed": false,
+        "passed_skills": [],
+        "passing_score": 80,
+        "percentage": 77.8,
+        "questions_evaluated": 3,
+        "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+        "remaining_attempts": 1,
+        "reviews": [
+          {
+            "correct_answer": "JavaScript",
+            "explanation": "JavaScript เป็นภาษาหลักที่รันบน Web Browser (อัปเดตคำอธิบายเพิ่มเติม)",
+            "image_url": null,
+            "is_correct": true,
+            "max_score": 5,
+            "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3",
+            "question_text": "ภาษาคอมพิวเตอร์ใดใช้สำหรับทำงานบนเว็บเบราว์เซอร์เป็นหลัก?",
+            "question_type": "multiple_choice",
+            "scenario": null,
+            "score": 5,
+            "user_answer": "JavaScript"
+          },
+          {
+            "correct_answer": [
+              "HTTP -> 80",
+              "HTTPS -> 443"
+            ],
+            "explanation": "HTTP ใช้พอร์ต 80 และ HTTPS ใช้พอร์ต 443",
+            "image_url": null,
+            "is_correct": true,
+            "max_score": 5,
+            "question_id": "e2faae83-b999-4f35-99f6-e58e48f9506c",
+            "question_text": "จงจับคู่โปรโตคอลเครือข่ายกับพอร์ตมาตรฐานให้ถูกต้อง",
+            "question_type": "matching",
+            "scenario": null,
+            "score": 5,
+            "user_answer": "{\"http\": \"80\", \"https\": \"443\"}"
+          },
+          {
+            "correct_answer": [
+              "FROM",
+              "WHERE",
+              "SELECT"
+            ],
+            "explanation": "Logical Query Processing เริ่มจาก FROM -> WHERE -> SELECT",
+            "image_url": null,
+            "is_correct": false,
+            "max_score": 5,
+            "question_id": "dc493684-6325-4c66-9373-e173c6e6ae27",
+            "question_text": "จงเรียงลำดับขั้นตอนการประมวลผลคำสั่ง SQL Query ตาม Logical Order",
+            "question_type": "ordering",
+            "scenario": null,
+            "score": 1.67,
+            "user_answer": "[\"2089155f-7ed7-4f62-a104-10c5a595672e\", \"c4176552-edde-402c-8578-cb8c80541a32\", \"f001e010-5001-4018-9cdb-021c77ece663\"]"
+          }
+        ],
+        "score": 11.67,
+        "skills_to_review": [],
+        "submitted_at": "2026-10-08T05:59:08.989132+00:00",
+        "time_spent": 3,
+        "time_used": 3,
+        "total_questions": 3,
+        "total_score": 15,
+        "unlocked_skills": [],
+        "user_answers": [
+          "JavaScript",
+          "{\"http\": \"80\", \"https\": \"443\"}",
+          "[\"2089155f-7ed7-4f62-a104-10c5a595672e\", \"c4176552-edde-402c-8578-cb8c80541a32\", \"f001e010-5001-4018-9cdb-021c77ece663\"]"
+        ],
+        "user_id": "db6d2cfe-4d38-4eeb-84c7-04091648321b",
+        "wrong_count": 1
+      }
+    },
+    {
+      "action": "Submit Attempt 2 (Wrong Answers)",
+      "endpoint": "/api/v1/quizzes/8c0dc207-da01-41eb-99f9-d64cb213cb51/submit",
+      "method": "POST",
+      "status": 200,
+      "data": {
+        "attempt_id": "48fbf0b5-3f35-43a7-888b-cded2411e353",
+        "attempt_number": 2,
+        "attempts_count": 2,
+        "concepts_to_review": [],
+        "correct_answers": [
+          "JavaScript",
+          [
+            "HTTP -> 80",
+            "HTTPS -> 443"
+          ],
+          [
+            "FROM",
+            "WHERE",
+            "SELECT"
+          ]
+        ],
+        "correct_count": 0,
+        "feedback": "คุณยังไม่ผ่านแบบทดสอบ ได้คะแนน 0.00% (เกณฑ์ผ่าน 80.00%) กรุณาลองใหม่อีกครั้ง",
+        "is_passed": false,
+        "max_attempts": 2,
+        "message": "ส่งแบบทดสอบและประมวลผลสำเร็จ",
+        "next_recommendation": "แนะนำให้ทบทวนบทเรียนและทำความเข้าใจแนวคิดที่ยังไม่ผ่าน ก่อนเริ่มทำแบบทดสอบใหม่อีกครั้ง",
+        "passed": false,
+        "passed_skills": [],
+        "passing_score": 80,
+        "percentage": 0,
+        "questions_evaluated": 3,
+        "quiz_id": "8c0dc207-da01-41eb-99f9-d64cb213cb51",
+        "remaining_attempts": 0,
+        "reviews": [
+          {
+            "correct_answer": "JavaScript",
+            "explanation": "JavaScript เป็นภาษาหลักที่รันบน Web Browser (อัปเดตคำอธิบายเพิ่มเติม)",
+            "image_url": null,
+            "is_correct": false,
+            "max_score": 5,
+            "question_id": "5c8fa05a-ebc5-48ef-963a-a0f1671903e3",
+            "question_text": "ภาษาคอมพิวเตอร์ใดใช้สำหรับทำงานบนเว็บเบราว์เซอร์เป็นหลัก?",
+            "question_type": "multiple_choice",
+            "scenario": null,
+            "score": 0,
+            "user_answer": "Python"
+          },
+          {
+            "correct_answer": [
+              "HTTP -> 80",
+              "HTTPS -> 443"
+            ],
+            "explanation": "HTTP ใช้พอร์ต 80 และ HTTPS ใช้พอร์ต 443",
+            "image_url": null,
+            "is_correct": false,
+            "max_score": 5,
+            "question_id": "e2faae83-b999-4f35-99f6-e58e48f9506c",
+            "question_text": "จงจับคู่โปรโตคอลเครือข่ายกับพอร์ตมาตรฐานให้ถูกต้อง",
+            "question_type": "matching",
+            "scenario": null,
+            "score": 0,
+            "user_answer": "{\"http\": \"443\", \"https\": \"80\"}"
+          },
+          {
+            "correct_answer": [
+              "FROM",
+              "WHERE",
+              "SELECT"
+            ],
+            "explanation": "Logical Query Processing เริ่มจาก FROM -> WHERE -> SELECT",
+            "image_url": null,
+            "is_correct": false,
+            "max_score": 5,
+            "question_id": "dc493684-6325-4c66-9373-e173c6e6ae27",
+            "question_text": "จงเรียงลำดับขั้นตอนการประมวลผลคำสั่ง SQL Query ตาม Logical Order",
+            "question_type": "ordering",
+            "scenario": null,
+            "score": 0,
+            "user_answer": "[\"c4176552-edde-402c-8578-cb8c80541a32\", \"2089155f-7ed7-4f62-a104-10c5a595672e\", \"f001e010-5001-4018-9cdb-021c77ece663\"]"
+          }
+        ],
+        "score": 0,
+        "skills_to_review": [],
+        "submitted_at": "2026-10-08T05:59:12.131916+00:00",
+        "time_spent": 2,
+        "time_used": 2,
+        "total_questions": 3,
+        "total_score": 15,
+        "unlocked_skills": [],
+        "user_answers": [
+          "Python",
+          "{\"http\": \"443\", \"https\": \"80\"}",
+          "[\"c4176552-edde-402c-8578-cb8c80541a32\", \"2089155f-7ed7-4f62-a104-10c5a595672e\", \"f001e010-5001-4018-9cdb-021c77ece663\"]"
+        ],
+        "user_id": "db6d2cfe-4d38-4eeb-84c7-04091648321b",
+        "wrong_count": 3
+      }
+    }
+  ],
+  "securityVerifications": [
+    {
+      "test": "IDOR Prevention (Accessing another student attempt review)",
+      "status": 403,
+      "expected": 403,
+      "pass": true
+    },
+    {
+      "test": "Duplicate Submit Guard (Submitting already completed attempt)",
+      "status": 409,
+      "expected": "409 or 400",
+      "pass": true
+    },
+    {
+      "test": "RBAC Authorization Guard (Student attempting instructor action)",
+      "status": 403,
+      "expected": 403,
+      "pass": true
+    },
+    {
+      "test": "Anti-Tampering / Zero Information Leakage (Sanitized Questions)",
+      "hasLeakedKey": false,
+      "expected": false,
+      "pass": true
+    }
+  ]
+}

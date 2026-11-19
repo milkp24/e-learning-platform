@@ -1,0 +1,1 @@
+export { default } from "./guest/Register/Register";

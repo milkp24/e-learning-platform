@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" fill="none">
+  <!-- Background gradient plate -->
+  <rect width="400" height="220" rx="16" fill="#FAFAFA"/>
+  <rect x="1" y="1" width="398" height="218" rx="15" stroke="#ABD1C6" stroke-width="2"/>
+  
+  <!-- Blackboard / Classroom Board -->
+  <rect x="40" y="30" width="320" height="130" rx="12" fill="#456F65"/>
+  <rect x="48" y="38" width="304" height="114" rx="8" fill="#20302C"/>
+  
+  <!-- Grid lines on board for math / code feeling -->
+  <line x1="70" y1="65" x2="160" y2="65" stroke="#6FA99A" stroke-width="4" stroke-linecap="round"/>
+  <line x1="70" y1="85" x2="220" y2="85" stroke="#ABD1C6" stroke-width="4" stroke-linecap="round"/>
+  <line x1="70" y1="105" x2="140" y2="105" stroke="#6FA99A" stroke-width="4" stroke-linecap="round"/>
+  <line x1="70" y1="125" x2="190" y2="125" stroke="#ABD1C6" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Classroom Icon on right side of board -->
+  <circle cx="280" cy="85" r="32" fill="#456F65"/>
+  <!-- Graduation cap icon -->
+  <path d="M280 68L300 78L280 88L260 78L280 68Z" fill="#ABD1C6"/>
+  <path d="M266 82V90C266 94 272 97 280 97C288 97 294 94 294 90V82" stroke="#ABD1C6" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Board Tray -->
+  <rect x="150" y="160" width="100" height="8" rx="3" fill="#ABD1C6"/>
+  <!-- Desk Base / Surface -->
+  <rect x="20" y="185" width="360" height="15" rx="6" fill="#ABD1C6" fill-opacity="0.4"/>
+</svg>

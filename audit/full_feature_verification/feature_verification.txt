@@ -1,0 +1,47 @@
+﻿
+Phase FeatureID Feature                         UI_Found Backend_Found Audit_Document_Found Static_Result                         
+----- --------- -------                         -------- ------------- -------------------- -------------                         
+1     1.1       สมัครสมาชิก                         True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     1.2       เข้าสู่ระบบ                         True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     1.3       ออกจากระบบ                          True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     1.4       ลืมและตั้งรหัสผ่านใหม่              True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     1.5       จัดการข้อมูลส่วนตัว                 True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     1.6       เปลี่ยนรหัสผ่าน                     True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     1.7       กำหนดอายุบัญชี                      True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     1.8       จัดการบัญชีผู้ใช้                   True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     1.9       จัดการสิทธิ์การเข้าถึง              True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     2.1       โครงสร้างรายวิชา                    True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     2.2       ลงทะเบียนเรียน                      True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     2.3       จัดการเนื้อหาบทเรียน                True         False                 True พบเพียงบางส่วน                        
+1     2.3.1     อัปโหลดสื่อ                        False         False                 True ไม่พบจาก Keyword Search               
+1     2.3.2     จัดการสื่อ                         False         False                 True ไม่พบจาก Keyword Search               
+1     2.3.3     เนื้อหา Text/Code                  False         False                 True ไม่พบจาก Keyword Search               
+1     2.4       จัดการบทเรียน                       True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     2.5       จัดการ Episode                      True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     2.6       เผยแพร่เนื้อหา                      True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     2.7       ติดตามความก้าวหน้า                  True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     2.8       จัดการเนื้อหาการเรียน               True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.1       จัดการบัญชีและสิทธิ์                True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.2       จัดการโรงเรียน ห้องเรียน สมาชิก     True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.3       จัดการและอนุมัติรายวิชา             True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+2     9.4       จัดการระบบ                          True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.5       จัดการการตั้งค่า                    True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.6       Interactive Component Library       True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.7       Analytics Dashboard                 True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.8       Security Management                 True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.9       System Configuration                True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.10      Security Audit                      True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.11      Audit Log                           True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.12      Reports                             True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+1     9.13      Backup and Recovery                False          True                 True พบเพียงบางส่วน                        
+2     4.1       คุณสมบัติการเรียนรู้                True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+2     4.2       ระบบการเรียนรู้                     True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+2     4.3       การติดตามการเรียน                   True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+2     5.1       ระบบ XP                             True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+2     8.1       แบบฝึกหัด                           True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+2     8.2       แบบทดสอบ                            True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+2     8.3       เงื่อนไขแบบทดสอบ                    True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+2     8.4       ผลและ Feedback                      True          True                 True พบไฟล์ที่เกี่ยวข้อง ต้องตรวจ Logic ต่อ
+
+
+

@@ -1,23 +1,19 @@
-# Python
+# secrets
+.env
+.env.*
+!.env.example
+# python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-
-# Virtual Environment
 venv/
-env/
-ENV/
-
-# Environment Variables
-.env
-
-# Database
-*.sqlite3
+.venv/
+.pytest_cache/
+instance/
 *.db
-
-# IDE / Editor
-.vscode/
-.idea/
-*.swp
+# node
+node_modules/
+dist/
+# misc
+*.bak
+*.zip
+uploads/

@@ -1,0 +1,138 @@
+/* นำเข้า Google Fonts: Prompt สำหรับ UI ทั้งระบบ และ JetBrains Mono สำหรับ Code Editor/Syntax */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap");
+
+/* ========================================
+   Tailwind CSS
+   ======================================== */
+
+@import "tailwindcss";
+
+
+/* ========================================
+   Custom Theme (Jade Design System)
+   ======================================== */
+
+/*
+  กำหนดค่าสีและฟอนต์มาตรฐานของทั้งแพลตฟอร์ม
+  ใช้ฟอนต์ Prompt เป็นฟอนต์หลักทั้ง Public และ Dashboard เพื่อความสม่ำเสมอของ UI
+*/
+
+@theme {
+
+  /* Font หลักสำหรับส่วนแสดงผลผู้ใช้ทั้งเว็บไซต์ (Public Website & Landing Pages) */
+  --font-sans: "Prompt", sans-serif;
+
+  /* Font สำหรับแดชบอร์ดและคอนโซลผู้ดูแล (ใช้ Prompt เพื่ออัตลักษณ์และความเป็นเอกภาพ) */
+  --font-dashboard: "Prompt", sans-serif;
+
+  /* Font สำหรับ Code Editor, Code Blocks, Terminal และ Syntax Highlighting */
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* สีหลักของระบบ */
+  --color-jade: #ABD1C6;
+
+  /* สีพื้นหลังหลัก */
+  --color-cloud: #FAFAFA;
+
+  /* สีตัวอักษรหลัก */
+  --color-dark: #26332F;
+
+  /* สีตัวอักษรรอง */
+  --color-muted: #6B7773;
+}
+
+
+/* ========================================
+   Global Style
+   ======================================== */
+
+/*
+  กำหนดพื้นหลังและฟอนต์หลักของทั้งเว็บไซต์
+  เพื่อให้ทุกหน้าใช้ฟอนต์ Prompt เป็นค่าเริ่มต้นตาม Jade Design System
+*/
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: #FAFAFA;
+  color: #26332F;
+}
+
+/*
+  บังคับให้ Form Elements (ปุ่ม, ช่องกรอก, เมนู Dropdown)
+  สืบทอดฟอนต์ Prompt จาก Container โดยไม่ตกหล่นกลับไปใช้ฟอนต์ระบบเริ่มต้น
+*/
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+
+/* ========================================
+   Dashboard Font Scope
+   ======================================== */
+
+/*
+  ขอบเขตฟอนต์แดชบอร์ด (Student, Instructor, Admin, Super Admin)
+  ใช้ฟอนต์ Prompt เพื่อความกลมกลืนและอ่านง่าย
+*/
+
+.font-dashboard {
+  font-family: var(--font-dashboard);
+}
+
+
+/* ========================================
+   Code Font
+   ======================================== */
+
+/*
+  บังคับให้ Code Editor, Code Blocks, Terminal และ Syntax Elements
+  ใช้ฟอนต์ Monospace (JetBrains Mono) เสมอ เพื่อการจัดแนวอักขระและการเขียนโค้ดที่แม่นยำ
+*/
+
+code,
+pre,
+kbd,
+samp,
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
+
+
+/* ========================================
+   Drawer Slide-over & Overlay Animations
+   ======================================== */
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slideIn {
+  animation: slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
