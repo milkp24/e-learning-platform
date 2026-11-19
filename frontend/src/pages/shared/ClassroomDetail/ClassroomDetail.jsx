@@ -14,6 +14,7 @@ import EditClassroomModal from "./components/EditClassroomModal";
 import AddLessonModal from "./components/AddLessonModal";
 import AddMemberModal from "./components/AddMemberModal";
 import GuestLockModal from "../../../components/GuestLockModal";
+import { confirmDelete } from "../../../store/useConfirmStore";
 
 /**
  * ClassroomDetail Page Component (หน้ารายละเอียดห้องเรียน)
@@ -201,7 +202,12 @@ function ClassroomDetail() {
 
   // ลบห้องเรียน
   const handleDeleteClassroom = async () => {
-    if (!window.confirm("คุณแน่ใจหรือไม่ที่จะลบห้องเรียนนี้? ข้อมูลบทเรียนและสมาชิกทั้งหมดจะถูกลบไปด้วย")) {
+    const ok = await confirmDelete({
+      itemType: "คอร์สเรียน",
+      itemName: classroom?.title,
+      detail: "บทเรียน เนื้อหา และรายชื่อสมาชิกทั้งหมดในคอร์สนี้จะถูกลบไปด้วย และไม่สามารถย้อนกลับได้",
+    });
+    if (!ok) {
       return;
     }
     try {
@@ -233,7 +239,15 @@ function ClassroomDetail() {
 
   // ลบบทเรียน
   const handleDeleteLesson = async (lessonId) => {
-    if (!window.confirm("ยืนยันที่จะลบบทเรียนนี้หรือไม่?")) return;
+    const lessonToDelete = lessons.find((l) => String(l.lesson_id || l.id) === String(lessonId));
+    if (
+      !(await confirmDelete({
+        itemType: "บทเรียน",
+        itemName: lessonToDelete?.title,
+        detail: "ตอนย่อยและเนื้อหาทั้งหมดในบทเรียนนี้จะถูกลบไปด้วย และไม่สามารถย้อนกลับได้",
+      }))
+    )
+      return;
     try {
       await classroomService.deleteLesson(lessonId);
       showNotice("success", "ลบบทเรียนสำเร็จ");
@@ -260,7 +274,16 @@ function ClassroomDetail() {
 
   // ลบสมาชิก
   const handleRemoveMember = async (memberUserId) => {
-    if (!window.confirm("ยืนยันที่จะนำสมาชิกคนนี้ออกจากห้องเรียนหรือไม่?")) return;
+    const member = members.find((m) => String(m.user_id) === String(memberUserId));
+    if (
+      !(await confirmDelete({
+        itemType: "สมาชิกออกจากคอร์ส",
+        itemName: member?.display_name || member?.email,
+        detail: "ผู้เรียนจะไม่สามารถเข้าคอร์สนี้ได้จนกว่าจะลงทะเบียนใหม่",
+        confirmText: "นำออกจากคอร์ส",
+      }))
+    )
+      return;
     try {
       await classroomService.removeMember(classroomId, memberUserId);
       showNotice("success", "นำสมาชิกออกเรียบร้อยแล้ว");

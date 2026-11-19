@@ -26,6 +26,18 @@ import {
   SystemBlueprint,
   ComponentCollection,
 } from "../../../features/courses/iot101";
+import { confirmDelete } from "../../../store/useConfirmStore";
+
+// ชื่อประเภทเนื้อหา ใช้ในกล่องยืนยันการลบ
+const CONTENT_TYPE_LABELS = {
+  text: "ข้อความ",
+  image: "รูปภาพ",
+  video: "วิดีโอ",
+  youtube: "วิดีโอ YouTube",
+  file: "ไฟล์",
+  pdf: "ไฟล์ PDF",
+  code: "โค้ด",
+};
 
 /**
  * LessonDetail Page Component (หน้ารายละเอียดบทเรียนและจัดการเนื้อหา)
@@ -228,7 +240,11 @@ function LessonDetail() {
   };
 
   const handleDeleteContent = async (contentId) => {
-    if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบเนื้อหานี้?")) return;
+    const target = contents.find((c) => String(c.content_id || c.id) === String(contentId));
+    const contentLabel = target
+      ? target.caption || `${CONTENT_TYPE_LABELS[target.content_type] || target.content_type} ลำดับที่ ${contents.indexOf(target) + 1}`
+      : null;
+    if (!(await confirmDelete({ itemType: "เนื้อหา", itemName: contentLabel }))) return;
     try {
       await classroomService.deleteContent(contentId);
       showNotice("success", "ลบเนื้อหาเรียบร้อยแล้ว");
@@ -263,9 +279,11 @@ function LessonDetail() {
 
   const handleDeleteLesson = async () => {
     if (
-      !window.confirm(
-        "คุณแน่ใจหรือไม่ว่าต้องการลบบทเรียนนี้? ข้อมูลเนื้อหาทั้งหมดจะถูกลบไปด้วย"
-      )
+      !(await confirmDelete({
+        itemType: "บทเรียน",
+        itemName: lesson?.title,
+        detail: "เนื้อหาทั้งหมดในบทเรียนนี้จะถูกลบไปด้วย และไม่สามารถย้อนกลับได้",
+      }))
     )
       return;
 

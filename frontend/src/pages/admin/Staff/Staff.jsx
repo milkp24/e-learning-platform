@@ -17,6 +17,7 @@ import AddStaffModal from "./components/AddStaffModal";
 import StaffPermissionModal from "./components/StaffPermissionModal";
 import AuditLogModal from "../../../features/permissions/components/AuditLogModal/AuditLogModal";
 import useUrlParam from "../../../hooks/useUrlParam";
+import { confirmDelete } from "../../../store/useConfirmStore";
 
 export default function Staff() {
   const {
@@ -118,7 +119,7 @@ export default function Staff() {
       showNotice("ไม่สามารถลบบัญชี Super Admin ได้", "error");
       return;
     }
-    if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบเจ้าหน้าที่ '${staff.name}'?`)) {
+    if (await confirmDelete({ itemType: "บัญชีเจ้าหน้าที่", itemName: `${staff.name}${staff.email ? ` (${staff.email})` : ""}` })) {
       try {
         await adminService.deleteUser(staff.id);
         showNotice(`ลบเจ้าหน้าที่ ${staff.name} เรียบร้อยแล้ว`);

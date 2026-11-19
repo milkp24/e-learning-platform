@@ -534,13 +534,22 @@ function CourseContentManager() {
     handleCloseBlockModal();
   };
 
+  // คำอธิบายบล็อกสำหรับกล่องยืนยันการลบ (ข้อ 38): ประเภท + คำบรรยาย/ชื่อไฟล์
+  const describeBlock = (block) => {
+    if (!block) return "ไม่ทราบประเภท";
+    const typeLabels = { text: "ข้อความ", image: "รูปภาพ", video: "วิดีโอ", youtube: "YouTube", file: "ไฟล์" };
+    const typeLabel = typeLabels[block.content_type] || block.content_type || "เนื้อหา";
+    const name = block.caption || block.file_name;
+    return name ? `${typeLabel}: ${name}` : typeLabel;
+  };
+
   const handleDeleteBlock = (index) => {
     setDeleteConfirm({
       isOpen: true,
       type: "content",
       targetIndex: index,
       title: "ยืนยันการลบบล็อกเนื้อหา",
-      message: `คุณแน่ใจหรือไม่ว่าต้องการลบบล็อกที่ ${index + 1}?`,
+      message: `คุณแน่ใจหรือไม่ว่าต้องการลบบล็อกที่ ${index + 1} (${describeBlock(contents[index])})? การลบจะมีผลเมื่อกดบันทึก`,
     });
   };
 

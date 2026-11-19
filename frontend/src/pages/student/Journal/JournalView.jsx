@@ -5,6 +5,7 @@ import JournalHeader from "./components/JournalHeader";
 import JournalFilter from "./components/JournalFilter";
 import JournalList from "./components/JournalList";
 import JournalModal from "./components/JournalModal";
+import { confirmDelete } from "../../../store/useConfirmStore";
 
 // ======================================================
 // JournalView Component (หน้าบันทึกการเรียนรู้ส่วนตัวของผู้เรียน)
@@ -115,7 +116,8 @@ function JournalView() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("คุณต้องการลบบันทึกการเรียนรู้นี้ใช่หรือไม่?")) return;
+    const journal = journals.find((j) => String(j.journal_id || j.id) === String(id));
+    if (!(await confirmDelete({ itemType: "บันทึกการเรียนรู้", itemName: journal?.title }))) return;
     try {
       await journalService.deleteJournal(id);
       fetchJournals();

@@ -24,6 +24,7 @@ import SearchUserRolesSection from "./components/SearchUserRolesSection";
 import UserRolesManagerSection from "./components/UserRolesManagerSection";
 import RolesInfoCard from "./components/RolesInfoCard";
 import { getAllPermissionKeys } from "../../../features/permissions/data/permissionsData";
+import { confirmAction, confirmDelete } from "../../../store/useConfirmStore";
 
 const TOTAL_PERMISSIONS = getAllPermissionKeys().length;
 
@@ -192,12 +193,12 @@ function Roles() {
   };
 
   // Delete Role
-  const handleDeleteRole = (role) => {
+  const handleDeleteRole = async (role) => {
     if (role.isSystem) {
       showNotice("error", "ไม่สามารถลบบทบาทระดับระบบได้");
       return;
     }
-    if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบบทบาท '${role.name}'?`)) {
+    if (await confirmDelete({ itemType: "บทบาท", itemName: role.name })) {
       deleteRole(role.id);
       setSelectedRoleId(roles[0]?.id || "super_admin");
       showNotice("success", `ลบบทบาท '${role.name}' เรียบร้อยแล้ว`);
@@ -259,9 +260,11 @@ function Roles() {
 
   const handleRemoveRole = async (roleName) => {
     if (
-      !window.confirm(
-        `คุณแน่ใจหรือไม่ว่าต้องการถอนบทบาท '${roleName}' ออกจากผู้ใช้นี้?`
-      )
+      !(await confirmAction({
+        title: "ยืนยันการถอนบทบาท",
+        message: `คุณแน่ใจหรือไม่ว่าต้องการถอนบทบาท "${roleName}" ออกจากผู้ใช้นี้?`,
+        confirmText: "ถอนบทบาท",
+      }))
     ) {
       return;
     }

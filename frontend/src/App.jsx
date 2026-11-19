@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import TimeoutModal from "./features/auth/components/TimeoutModal";
 // กล่องแจ้งเตือนเมื่อได้รับการอัปเกรดบทบาทเป็น Admin
 import RoleUpgradeNotification from "./components/common/RoleUpgradeNotification";
+// กล่องยืนยันกลาง (ใช้แทน window.confirm)
+import GlobalConfirmDialog from "./components/common/GlobalConfirmDialog";
 // Hook ตรวจจับ Inactivity useIdleTimeout
 import useIdleTimeout from "./features/auth/hooks/useIdleTimeout";
 import useAuthStore from "./store/useAuthStore";
@@ -57,6 +59,9 @@ function App() {
         isGuestTimeout={isGuestTimeout}
         onCloseGuest={closeGuestModal}
       />
+
+      {/* กล่องยืนยันก่อนลบ / ทำรายการสำคัญ */}
+      <GlobalConfirmDialog />
 
       {/* เส้นทางทั้งหมดของระบบ */}
       <AppRoutes />
