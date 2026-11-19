@@ -141,7 +141,7 @@ function AdminHeader({ onOpenSidebar }) {
   return (
     <>
       <header
-        aria-label="Super Admin Top Navigation"
+        aria-label="Admin Top Navigation"
         className="sticky top-0 z-30 border-b border-[#E5E9E7] bg-white/95 backdrop-blur-md"
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -153,7 +153,7 @@ function AdminHeader({ onOpenSidebar }) {
             />
 
             <Link
-              to="/admin/home"
+              to={isSuper ? "/admin/home" : "/admin/dashboard"}
               className="flex items-center gap-2 sm:gap-2.5 text-sm sm:text-base lg:text-lg font-black tracking-tight text-[#26332F] transition hover:opacity-90 select-none shrink-0"
             >
               <span className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-[#ABD1C6]/30 text-[#004643] shadow-xs">
@@ -165,7 +165,7 @@ function AdminHeader({ onOpenSidebar }) {
             </Link>
 
             <span className="hidden lg:inline-flex items-center rounded-lg bg-[#ABD1C6]/20 border border-[#ABD1C6]/60 px-2.5 py-0.5 text-xs font-bold text-[#004643] shrink-0">
-              Super Admin Console
+              {isSuper ? "Super Admin Console" : "Admin Console"}
             </span>
           </div>
 
@@ -455,7 +455,7 @@ function AdminHeader({ onOpenSidebar }) {
             {/* Footer */}
             <div className="px-4 py-2.5 border-t border-[#E5E9E7] bg-[#FAFAFA] flex items-center justify-between text-[11px] text-[#6B7773]">
               <span>กด <kbd className="font-mono bg-white px-1 py-0.5 rounded border">Esc</kbd> เพื่อปิด</span>
-              <span>นำทางด่วนในระบบ Super Admin</span>
+              <span>นำทางด่วนในระบบ{isSuper ? " Super Admin" : "ผู้ดูแลระบบ"}</span>
             </div>
           </div>
         </div>

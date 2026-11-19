@@ -174,7 +174,7 @@ function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
                 แก้ไขข้อมูลผู้ใช้งาน
               </h2>
               <p className="text-xs text-[#6B7773]">
-                บันทึกการเปลี่ยนแปลงลงฐานข้อมูลระบบจริงโดย Super Admin
+                บันทึกการเปลี่ยนแปลงลงฐานข้อมูลระบบ
               </p>
             </div>
           </div>
