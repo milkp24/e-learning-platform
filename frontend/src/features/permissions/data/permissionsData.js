@@ -1,6 +1,6 @@
 /**
  * Permission System Data Specifications
- * 7 Modules with 37 granular actions
+ * 7 Modules with 41 granular actions (ตรงกับ backend/app/models/role.py)
  * Used across Role Management, Staff Management, and Super Admin Dashboard
  */
 
@@ -112,7 +112,7 @@ export const PERMISSION_MODULES = [
   },
 ];
 
-// Helper: ดึงรายการคีย์สิทธิ์ทั้งหมด (37 รายการ)
+// Helper: ดึงรายการคีย์สิทธิ์ทั้งหมด (41 รายการ)
 export const getAllPermissionKeys = () => {
   const keys = [];
   PERMISSION_MODULES.forEach((mod) => {
@@ -182,7 +182,7 @@ export const PERMISSION_PRESETS = [
   {
     id: "full_admin",
     name: "สิทธิ์ทั้งหมด (Full Access)",
-    description: "ครอบคลุมทุกโมดูลและทุกการกระทำในระบบทั้งหมด (37 สิทธิ์)",
+    description: "ครอบคลุมทุกโมดูลและทุกการกระทำในระบบทั้งหมด (41 สิทธิ์)",
     getPermissions: () => getAllPermissionKeys(),
   },
 ];

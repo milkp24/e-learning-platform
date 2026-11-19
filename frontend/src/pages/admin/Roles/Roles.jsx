@@ -23,11 +23,14 @@ import SystemRolesSection from "./components/SystemRolesSection";
 import SearchUserRolesSection from "./components/SearchUserRolesSection";
 import UserRolesManagerSection from "./components/UserRolesManagerSection";
 import RolesInfoCard from "./components/RolesInfoCard";
+import { getAllPermissionKeys } from "../../../features/permissions/data/permissionsData";
+
+const TOTAL_PERMISSIONS = getAllPermissionKeys().length;
 
 /**
  * Roles Page Component (Admin Roles & Permissions Management)
  * Overhauled to support:
- * 1. Dynamic 37-Permission Matrix per Role
+ * 1. Dynamic Permission Matrix per Role
  * 2. Role CRUD (Create, Edit, Clone, Toggle Status, Delete)
  * 3. Audit Log integration
  * 4. Preserves 100% of existing backend User Role search and assignment logic
@@ -114,36 +117,48 @@ function Roles() {
     fetchSystemRoles();
   }, [fetchSystemRoles]);
 
-  // Sync Dynamic Permission Matrix from Backend Database on mount
-  useEffect(() => {
-    const syncMatrixFromBackend = async () => {
-      try {
-        const res = await roleService.getRolePermissionsMatrix();
-        if (res?.matrix) {
-          Object.entries(res.matrix).forEach(([rName, perms]) => {
-            updateRolePermissions(rName, perms);
-          });
-        }
-      } catch {
-        // fallback to store defaults
+  // Sync Dynamic Permission Matrix from Backend Database
+  // FB-18: เรียกซ้ำหลังบันทึกเพื่อให้ตัวเลขจำนวนสิทธิ์ตรงกับฐานข้อมูลทันทีโดยไม่ต้องรีเฟรช
+  const syncMatrixFromBackend = useCallback(async () => {
+    try {
+      const res = await roleService.getRolePermissionsMatrix();
+      if (res?.matrix) {
+        Object.entries(res.matrix).forEach(([rName, perms]) => {
+          updateRolePermissions(rName, perms);
+        });
       }
-    };
-    syncMatrixFromBackend();
+      return true;
+    } catch {
+      // fallback to store defaults
+      return false;
+    }
   }, [updateRolePermissions]);
+
+  useEffect(() => {
+    syncMatrixFromBackend();
+  }, [syncMatrixFromBackend]);
 
   // Save permissions from Matrix for current role
   const handleSaveRolePermissions = async () => {
     if (!selectedRole) return;
-    updateRolePermissions(selectedRole.id, workingPermissions);
 
-    // Persist to backend database PostgreSQL
+    // Persist to backend database PostgreSQL ก่อน แล้วค่อยอัปเดตตัวเลขบนหน้าจอ (FB-18)
     try {
       await roleService.updateRolePermissions(selectedRole.id, workingPermissions);
-      if (fetchCurrentUser) {
-        await fetchCurrentUser();
-      }
-    } catch {
-      // maintain local state
+    } catch (err) {
+      // ไม่แสดงว่าบันทึกสำเร็จหาก Backend ปฏิเสธ และดึงค่าจริงกลับมาแสดง
+      await syncMatrixFromBackend();
+      showNotice(
+        "error",
+        err.response?.data?.message || "บันทึกสิทธิ์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+      );
+      return;
+    }
+
+    updateRolePermissions(selectedRole.id, workingPermissions);
+    await syncMatrixFromBackend();
+    if (fetchCurrentUser) {
+      await fetchCurrentUser();
     }
 
     setMatrixSaveSuccess(true);
@@ -288,7 +303,7 @@ function Roles() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#6B7773] mt-0.5">
-            กำหนดโครงสร้างบทบาทและจัดการ Dynamic Permission Matrix 37 รายการอย่างอิสระ
+            กำหนดโครงสร้างบทบาทและจัดการ Dynamic Permission Matrix {TOTAL_PERMISSIONS} รายการอย่างอิสระ
           </p>
         </div>
 
@@ -476,7 +491,7 @@ function Roles() {
                     <div className="mt-2.5 pt-2 border-t border-[#E5E9E7]/60 flex items-center justify-between text-[11px]">
                       <span className="text-[#6B7773]">สิทธิ์ที่เปิดใช้งาน:</span>
                       <span className="font-mono font-bold text-[#004643]">
-                        {r.permissions?.length || 0} / 37 สิทธิ์
+                        {r.permissions?.length || 0} / {TOTAL_PERMISSIONS} สิทธิ์
                       </span>
                     </div>
                   </div>

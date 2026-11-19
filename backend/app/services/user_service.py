@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy import func, or_
 from app.extensions import db
 from app.models.user import User, UserProfile
-from app.models.role import Role
+from app.models.role import Role, Permission
 from app.models.admin import AuditLog
 from app.models.classroom import ClassroomMember, Lesson
 from app.models.progress import LearningProgress, LessonProgress
@@ -839,10 +839,18 @@ class UserService:
             User.roles.any(Role.role_name.in_(["super_admin", "admin", "instructor"]))
         ).order_by(User.created_at.desc()).all()
 
+        total_permissions = Permission.query.count()
+
         results = []
         for u in staff_users:
             role_names = [r.role_name for r in u.roles]
             primary = "super_admin" if "super_admin" in role_names else ("admin" if "admin" in role_names else "instructor")
+            # FB-18: สิทธิ์ที่มีผลจริง = ผลรวม (union) ของสิทธิ์จากทุก Role ที่ผู้ใช้มี ไม่นับซ้ำ
+            effective_permissions = sorted({
+                p.permission_name
+                for r in u.roles
+                for p in r.permissions.all()
+            })
             results.append({
                 "id": str(u.user_id),
                 "name": u.profile.display_name if u.profile else u.email,
@@ -851,7 +859,9 @@ class UserService:
                 "roles": role_names,
                 "status": u.status,
                 "createdAt": u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
-                "customPermissions": {}
+                "customPermissions": {},
+                "permissions": effective_permissions,
+                "permission_count": len(effective_permissions),
             })
 
-        return {"staff": results, "total": len(results)}
+        return {"staff": results, "total": len(results), "total_permissions": total_permissions}

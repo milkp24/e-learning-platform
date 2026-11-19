@@ -12,6 +12,7 @@ import {
 } from "react-icons/lu";
 import usePermissionStore from "../../../features/permissions/store/usePermissionStore";
 import adminService from "../../../services/adminService";
+import { getAllPermissionKeys } from "../../../features/permissions/data/permissionsData";
 import AddStaffModal from "./components/AddStaffModal";
 import StaffPermissionModal from "./components/StaffPermissionModal";
 import AuditLogModal from "../../../features/permissions/components/AuditLogModal/AuditLogModal";
@@ -26,6 +27,8 @@ export default function Staff() {
   } = usePermissionStore();
 
   const [realStaff, setRealStaff] = useState([]);
+  // FB-18: จำนวนสิทธิ์ทั้งหมด (ใช้ค่าจาก Backend ถ้ามี ไม่ hardcode)
+  const [totalPermissions, setTotalPermissions] = useState(getAllPermissionKeys().length);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -35,6 +38,9 @@ export default function Staff() {
       const data = await adminService.getStaff();
       if (data && Array.isArray(data.staff)) {
         setRealStaff(data.staff);
+      }
+      if (data && Number.isInteger(data.total_permissions) && data.total_permissions > 0) {
+        setTotalPermissions(data.total_permissions);
       }
     } catch (err) {
       console.error("Failed to load real staff:", err);
@@ -305,7 +311,10 @@ export default function Staff() {
                       name: "ไม่ระบุ",
                       badgeColor: "slate",
                     };
-                  const effectivePerms = getEffectiveStaffPermissions(staff.id);
+                  // FB-18: ใช้สิทธิ์จริงจาก Backend (รวมทุก Role) ก่อน หากไม่มีจึงใช้ข้อมูลตัวอย่างใน Store
+                  const effectivePerms = Array.isArray(staff.permissions)
+                    ? staff.permissions
+                    : getEffectiveStaffPermissions(staff.id);
                   const hasOverrides =
                     staff.customPermissions &&
                     Object.keys(staff.customPermissions).length > 0;
@@ -347,7 +356,7 @@ export default function Staff() {
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono font-bold text-[#26332F]">
-                            {effectivePerms.length}/37
+                            {effectivePerms.length}/{totalPermissions}
                           </span>
                           {hasOverrides && (
                             <span

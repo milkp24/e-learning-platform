@@ -8,6 +8,7 @@ import {
 } from "react-icons/lu";
 import usePermissionStore from "../../../../features/permissions/store/usePermissionStore";
 import PermissionMatrix from "../../../../features/permissions/components/PermissionMatrix/PermissionMatrix";
+import { getAllPermissionKeys } from "../../../../features/permissions/data/permissionsData";
 
 /**
  * StaffPermissionModal
@@ -183,7 +184,7 @@ export default function StaffPermissionModal({ staff, isOpen, onClose }) {
               <span>
                 สิทธิ์ที่ได้ผลลัพธ์จริง:{" "}
                 <strong className="text-[#004643] font-bold">
-                  {selectedPermissions.length} / 37 สิทธิ์
+                  {selectedPermissions.length} / {getAllPermissionKeys().length} สิทธิ์
                 </strong>
               </span>
             )}
