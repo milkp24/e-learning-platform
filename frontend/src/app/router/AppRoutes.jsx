@@ -46,6 +46,7 @@ import ClassroomDetail from "../../pages/shared/ClassroomDetail";
 import LessonDetail from "../../pages/shared/LessonDetail";
 import CourseContentManager from "../../pages/shared/CourseContentManager";
 import Profile from "../../pages/shared/Profile";
+import InfoPage from "../../pages/shared/InfoPage";
 
 /**
  * AppRoutes Component
@@ -121,6 +122,9 @@ function AppRoutes() {
         <Route path="/classrooms" element={<Classrooms />} />
         <Route path="/classrooms/:id" element={<ClassroomDetail />} />
         <Route path="/courses/:id" element={<ClassroomDetail />} />
+        <Route path="/privacy" element={<InfoPage page="privacy" />} />
+        <Route path="/terms" element={<InfoPage page="terms" />} />
+        <Route path="/help" element={<InfoPage page="help" />} />
       </Route>
 
       {/* 7. Protected Learning & Management Routes (Strictly Authenticated) */}

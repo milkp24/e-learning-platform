@@ -97,7 +97,11 @@ function Footer({ simple = false }) {
               <ul className="space-y-2">
                 <li className="text-[#6B7773]">การฝึกปฏิบัติการจริง</li>
                 <li className="text-[#6B7773]">ความปลอดภัยข้อมูล</li>
-                <li className="text-[#6B7773]">คำถามที่พบบ่อย</li>
+                <li>
+                  <Link to="/help" className="hover:text-[#004643] transition">
+                    คำถามที่พบบ่อย
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
@@ -107,11 +111,11 @@ function Footer({ simple = false }) {
         <div className="border-t border-[#E5E9E7] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#6B7773]">
           <p>© {new Date().getFullYear()} E-learning Platform. สงวนลิขสิทธิ์ทุกประการ</p>
           <div className="flex items-center gap-4">
-            <span className="hover:text-[#004643] cursor-pointer transition">นโยบายความเป็นส่วนตัว</span>
+            <Link to="/privacy" className="hover:text-[#004643] transition">นโยบายความเป็นส่วนตัว</Link>
             <span>•</span>
-            <span className="hover:text-[#004643] cursor-pointer transition">ข้อกำหนดการใช้งาน</span>
+            <Link to="/terms" className="hover:text-[#004643] transition">ข้อกำหนดการใช้งาน</Link>
             <span>•</span>
-            <span className="hover:text-[#004643] cursor-pointer transition">ศูนย์ช่วยเหลือ</span>
+            <Link to="/help" className="hover:text-[#004643] transition">ศูนย์ช่วยเหลือ</Link>
           </div>
         </div>
       </div>
