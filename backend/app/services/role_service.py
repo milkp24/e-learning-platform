@@ -100,6 +100,10 @@ class RoleService:
         if str(caller.user_id) == str(target_user.user_id):
             raise RoleServiceError("Users cannot modify their own roles.", 403, "Forbidden")
 
+        # #22: Admin ทั่วไปห้ามแก้ไขบทบาทใด ๆ ของบัญชี Super Admin (ทั้งเพิ่มและลบ)
+        if target_user.has_role("super_admin") and not caller.has_role("super_admin"):
+            raise RoleServiceError("Only a Super Admin can modify a Super Admin account.", 403, "Forbidden")
+
         if not data or not data.get("role_name"):
             raise RoleServiceError("role_name is required.", 400, "Bad Request")
 
@@ -181,6 +185,10 @@ class RoleService:
         # Privilege Escalation Protection: User/Admin cannot modify their own roles
         if str(caller.user_id) == str(target_user.user_id):
             raise RoleServiceError("Users cannot modify their own roles.", 403, "Forbidden")
+
+        # #22: Admin ทั่วไปห้ามแก้ไขบทบาทใด ๆ ของบัญชี Super Admin (ทั้งเพิ่มและลบ)
+        if target_user.has_role("super_admin") and not caller.has_role("super_admin"):
+            raise RoleServiceError("Only a Super Admin can modify a Super Admin account.", 403, "Forbidden")
 
         clean_role_name = str(role_name_raw).strip().lower()
         role = Role.query.filter(func.lower(Role.role_name) == clean_role_name).first()

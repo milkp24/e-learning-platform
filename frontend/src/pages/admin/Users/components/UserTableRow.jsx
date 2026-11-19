@@ -23,6 +23,9 @@ function UserTableRow({
     user.roles?.includes("super_admin") || user.role === "super_admin"
   );
   const isDeleteDisabled = isSelf || (targetIsSuperAdmin && !isSuperAdmin);
+  // #22: Admin ทั่วไปห้ามแก้ไขบัญชี Super Admin (Backend ตอบ 403 เช่นกัน)
+  const isProtectedSuperAdmin = targetIsSuperAdmin && !isSuperAdmin;
+  const canModifyTarget = canEditUser && !isProtectedSuperAdmin;
 
   return (
     <tr className="hover:bg-[#FAFAFA] transition duration-150">
@@ -80,10 +83,11 @@ function UserTableRow({
       <td className="px-6 py-4">
         <select
           value={user.status}
-          disabled={!canEditUser}
+          disabled={!canModifyTarget}
+          title={isProtectedSuperAdmin ? "เฉพาะ Super Admin เท่านั้นที่แก้ไขบัญชี Super Admin ได้" : undefined}
           onChange={(e) => onStatusChange(user.user_id, e.target.value)}
           className={`rounded-lg border px-2.5 py-1 text-xs font-bold uppercase focus:outline-none transition ${
-            !canEditUser ? "cursor-not-allowed opacity-70 " : "cursor-pointer "
+            !canModifyTarget ? "cursor-not-allowed opacity-70 " : "cursor-pointer "
           }${
             user.status === "active"
               ? "border-emerald-300 bg-emerald-50 text-emerald-800"
@@ -110,7 +114,7 @@ function UserTableRow({
             <LuEye className="h-3.5 w-3.5 text-[#004643]" />
             <span className="hidden sm:inline">ดูข้อมูล</span>
           </button>
-          {canEditUser && (
+          {canModifyTarget && (
             <button
               type="button"
               onClick={() => onOpenEditModal && onOpenEditModal(user)}
@@ -123,9 +127,14 @@ function UserTableRow({
           )}
           <button
             type="button"
-            onClick={() => onOpenRoleModal(user)}
-            title="กำหนดบทบาท"
-            className="inline-flex items-center gap-1 rounded-xl border border-[#E5E9E7] bg-white px-2.5 py-1.5 text-xs font-bold text-[#6B7773] hover:bg-gray-100 hover:text-[#26332F] transition shadow-2xs cursor-pointer"
+            onClick={() => !isProtectedSuperAdmin && onOpenRoleModal(user)}
+            disabled={isProtectedSuperAdmin}
+            title={isProtectedSuperAdmin ? "เฉพาะ Super Admin เท่านั้นที่แก้ไขบทบาทของ Super Admin ได้" : "กำหนดบทบาท"}
+            className={`inline-flex items-center gap-1 rounded-xl border border-[#E5E9E7] px-2.5 py-1.5 text-xs font-bold transition shadow-2xs ${
+              isProtectedSuperAdmin
+                ? "bg-gray-50 text-gray-400 cursor-not-allowed opacity-50"
+                : "bg-white text-[#6B7773] hover:bg-gray-100 hover:text-[#26332F] cursor-pointer"
+            }`}
           >
             <LuShield className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">บทบาท</span>
