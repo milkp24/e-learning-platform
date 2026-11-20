@@ -98,7 +98,7 @@ class TestUatExamSuite(unittest.TestCase):
         cls.classroom = Classroom(
             instructor_id=cls.instructor.user_id,
             title="วิทยาการคอมพิวเตอร์เบื้องต้น",
-            status="published",
+            status="active",
         )
         db.session.add(cls.classroom)
         db.session.flush()

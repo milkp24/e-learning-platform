@@ -8,6 +8,7 @@ from app.models.classroom import Lesson, Classroom
 from app.models.gamification import UserXP, UserLevel, Level, Mission, MissionProgress
 from app.models.progress import LessonProgress, LearningActivity
 from app.models.user import User
+from app.services.classroom_service import ClassroomService
 
 
 class ExerciseServiceError(Exception):
@@ -261,9 +262,37 @@ class ExerciseService:
     # 3. Exercise CRUD
     # =========================================================================
 
+    @staticmethod
+    def get_exercise_classroom(exercise: Exercise) -> Classroom | None:
+        """คอร์สที่แบบฝึกหัดนี้สังกัด (ผ่าน Lesson ตรง หรือผ่าน Chapter)"""
+        lesson = exercise.lesson if exercise else None
+        if not lesson:
+            return None
+        if lesson.classroom:
+            return lesson.classroom
+        if lesson.chapter and lesson.chapter.course:
+            return lesson.chapter.course
+        return None
+
+    @staticmethod
+    def strip_solutions(data: dict) -> dict:
+        """ซ่อนเฉลย (correct_answer, correct_code) ก่อนส่งให้คนที่ไม่ใช่ผู้จัดการแบบฝึกหัด"""
+        cleaned = []
+        for act in (data.get("activities_data") or []):
+            clean_act = dict(act)
+            clean_act.pop("correct_answer", None)
+            clean_act.pop("correct_code", None)
+            cleaned.append(clean_act)
+        data["activities_data"] = cleaned
+        return data
+
     @classmethod
     def list_exercises(cls, lesson_id: str | None = None, classroom_id: str | None = None, user: User | None = None) -> list:
-        """Query exercises filtered by lesson or classroom."""
+        """Query exercises filtered by lesson or classroom.
+        ข้อ 14: ผู้จัดการ (Admin หรืออาจารย์เจ้าของคอร์ส) เห็นทุกสถานะพร้อมเฉลย
+        คนอื่น (Guest, ผู้เรียน, อาจารย์ที่ไม่ใช่เจ้าของ) เห็นเฉพาะแบบฝึกหัดที่ published
+        ในคอร์สที่ตัวเองมองเห็นได้ และไม่มีเฉลย
+        """
         query = Exercise.query
         if lesson_id:
             try:
@@ -278,12 +307,18 @@ class ExerciseService:
             except (ValueError, TypeError):
                 return []
 
-        # If student, only show published
-        if user and not (user.has_role("admin") or user.has_role("super_admin") or user.has_role("instructor")):
-            query = query.filter(Exercise.status == "published")
-
-        exercises = query.order_by(Exercise.created_at.desc()).all()
-        return [ex.to_dict() for ex in exercises]
+        results = []
+        for ex in query.order_by(Exercise.created_at.desc()).all():
+            if cls.check_manage_permission(ex, user):
+                results.append(ex.to_dict())
+                continue
+            if ex.status != "published":
+                continue
+            classroom = cls.get_exercise_classroom(ex)
+            if classroom and not ClassroomService.can_view_classroom(classroom, user):
+                continue
+            results.append(cls.strip_solutions(ex.to_dict()))
+        return results
 
     @classmethod
     def get_exercise_by_id(cls, exercise_id: str, user: User | None = None, sanitize_for_student: bool = True) -> dict:
@@ -297,8 +332,14 @@ class ExerciseService:
         if not exercise:
             raise ExerciseServiceError("ไม่พบแบบฝึกหัดที่ระบุในระบบ", 404)
 
-        if user and not cls.check_view_permission(exercise, user):
+        # ข้อ 14: Guest ต้องเข้าสู่ระบบก่อน (เดิมข้ามการตรวจสิทธิ์และได้เฉลยไปด้วย)
+        if not user:
+            raise ExerciseServiceError("กรุณาเข้าสู่ระบบก่อนเปิดแบบฝึกหัด", 401)
+        if not cls.check_view_permission(exercise, user):
             raise ExerciseServiceError("คุณไม่มีสิทธิ์เข้าถึงแบบฝึกหัดนี้ (ต้องเป็นสมาชิกที่ลงทะเบียนเรียน)", 403)
+        # แบบฝึกหัดที่ยังไม่เผยแพร่ ผู้เรียนต้องมองไม่เห็น
+        if exercise.status != "published" and not cls.check_manage_permission(exercise, user):
+            raise ExerciseServiceError("ไม่พบแบบฝึกหัดที่ระบุในระบบ", 404)
 
         data = exercise.to_dict()
 
@@ -328,14 +369,9 @@ class ExerciseService:
             is_staff = user.has_role("admin") or user.has_role("super_admin") or (
                 user.has_role("instructor") and cls.check_manage_permission(exercise, user)
             )
-            if sanitize_for_student and not is_staff:
-                sanitized_activities = []
-                for act in (data.get("activities_data") or []):
-                    clean_act = dict(act)
-                    clean_act.pop("correct_answer", None)
-                    clean_act.pop("correct_code", None)
-                    sanitized_activities.append(clean_act)
-                data["activities_data"] = sanitized_activities
+            # ซ่อนเฉลยเสมอสำหรับคนที่ไม่ใช่ผู้จัดการ (เดิมผู้เรียนส่ง ?mode=manage มาแล้วได้เฉลย)
+            if not is_staff:
+                cls.strip_solutions(data)
 
         return data
 

@@ -102,7 +102,7 @@ class TestUatExerciseSuite(unittest.TestCase):
         cls.classroom = Classroom(
             instructor_id=cls.instructor.user_id,
             title="Interactive Programming with Python",
-            status="published",
+            status="active",
         )
         db.session.add(cls.classroom)
         db.session.flush()

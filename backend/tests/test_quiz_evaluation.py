@@ -91,7 +91,7 @@ class TestQuizEvaluationSuite(unittest.TestCase):
         cls.course = Classroom(
             instructor_id=cls.instructor.user_id,
             title="Python and Algorithms Masterclass",
-            status="published",
+            status="active",
         )
         db.session.add(cls.course)
         db.session.flush()
@@ -815,7 +815,7 @@ class TestQuizTimeLimitEnforcementSuite(unittest.TestCase):
         db.session.commit()
 
         # Classroom
-        cls.room = Classroom(instructor_id=cls.inst.user_id, title="Embedded Systems Lab", status="published")
+        cls.room = Classroom(instructor_id=cls.inst.user_id, title="Embedded Systems Lab", status="active")
         db.session.add(cls.room)
         db.session.flush()
 

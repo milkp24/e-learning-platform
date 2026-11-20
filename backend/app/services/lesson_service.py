@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models.user import User
 from app.models.classroom import Classroom, Lesson, Episode, Content
 from app.models.progress import LessonProgress
+from app.services.classroom_service import ClassroomService
 from app.utils.validators import (
     validate_title,
     validate_content_type,
@@ -53,6 +54,14 @@ class LessonService:
         if user.has_role("instructor") and str(classroom.instructor_id) == str(user.user_id):
             return True
         return False
+
+    @staticmethod
+    def ensure_course_visible(classroom: Classroom | None, user: User | None) -> None:
+        """ข้อ 14: โครงร่างบท/ตอนของคอร์สที่ผู้ใช้มองไม่เห็น (เช่น ฉบับร่างของอาจารย์คนอื่น)
+        ต้องตอบ 404 เหมือนเปิดหน้าคอร์ส ใช้กติกาเดียวกับ ClassroomService.can_view_classroom
+        """
+        if not ClassroomService.can_view_classroom(classroom, user):
+            raise LessonServiceError("Classroom not found.", 404, "Not Found")
 
     @staticmethod
     def can_view_classroom_content(classroom: Classroom | None, user: User | None) -> bool:
@@ -156,6 +165,7 @@ class LessonService:
         classroom = db.session.get(Classroom, c_uuid)
         if not classroom:
             raise LessonServiceError("Classroom not found.", 404, "Not Found")
+        cls.ensure_course_visible(classroom, user)
 
         is_member = cls.can_view_classroom_content(classroom, user)
         is_manager = cls.can_manage_classroom(classroom, user)
@@ -280,6 +290,7 @@ class LessonService:
         lesson = db.session.get(Lesson, l_uuid)
         if not lesson:
             raise LessonServiceError("Lesson not found.", 404, "Not Found")
+        cls.ensure_course_visible(cls.get_classroom_from_lesson(lesson), user)
 
         is_member = cls.can_view_classroom_content(lesson.classroom, user)
         is_unlocked, lock_reason = cls.is_lesson_unlocked_for_user(lesson, user)
@@ -400,6 +411,7 @@ class LessonService:
         lesson = db.session.get(Lesson, l_uuid)
         if not lesson:
             raise LessonServiceError("Lesson not found.", 404, "Not Found")
+        cls.ensure_course_visible(cls.get_classroom_from_lesson(lesson), user)
 
         is_member = cls.can_view_classroom_content(lesson.classroom, user)
         is_unlocked, lock_reason = cls.is_lesson_unlocked_for_user(lesson, user)
@@ -494,6 +506,7 @@ class LessonService:
         episode = db.session.get(Episode, ep_uuid)
         if not episode:
             raise LessonServiceError("Episode not found.", 404, "Not Found")
+        cls.ensure_course_visible(cls.get_classroom_from_lesson(episode.lesson), user)
 
         is_member = cls.can_view_classroom_content(episode.lesson.classroom, user)
         is_unlocked, lock_reason = cls.is_lesson_unlocked_for_user(episode.lesson, user)

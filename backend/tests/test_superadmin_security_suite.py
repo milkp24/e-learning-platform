@@ -115,7 +115,7 @@ def run_security_suite():
             title="Course By Instructor A",
             description="Physics 101",
             instructor_id=inst_a.user_id,
-            status="published"
+            status="active"
         )
         db.session.add(course_a)
         # Setup course for Instructor B
@@ -123,7 +123,7 @@ def run_security_suite():
             title="Course By Instructor B",
             description="Chemistry 201",
             instructor_id=inst_b.user_id,
-            status="published"
+            status="active"
         )
         db.session.add(course_b)
         db.session.commit()

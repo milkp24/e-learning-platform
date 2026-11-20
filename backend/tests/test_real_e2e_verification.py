@@ -86,7 +86,7 @@ class TestRealE2EVerification(unittest.TestCase):
         cls.course = Classroom(
             instructor_id=cls.instructor.user_id,
             title="Real E2E Interactive IoT & Python",
-            status="published"
+            status="active"
         )
         db.session.add(cls.course)
         db.session.flush()

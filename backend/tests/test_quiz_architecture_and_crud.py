@@ -86,7 +86,7 @@ class TestQuizArchitectureAndCRUD(unittest.TestCase):
                 instructor_id=cls.instructor.user_id,
                 title="Architecture Test Course",
                 description="Architecture Test Course Description",
-                status="published"
+                status="active"
             )
             db.session.add(cls.course)
             db.session.commit()

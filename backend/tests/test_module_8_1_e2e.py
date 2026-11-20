@@ -85,7 +85,7 @@ def run_e2e_tests():
                 title="Module 8.1 E2E Test Course",
                 description="Classroom for interactive quiz testing",
                 instructor_id=inst.user_id,
-                status="published"
+                status="active"
             )
             db.session.add(course)
             db.session.commit()

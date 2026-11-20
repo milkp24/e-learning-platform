@@ -64,7 +64,7 @@ def run_postgres_quiz_tests():
             course = Classroom(
                 instructor_id=inst.user_id,
                 title="PostgreSQL Quiz Demo Course",
-                status="published"
+                status="active"
             )
             db.session.add(course)
             db.session.commit()

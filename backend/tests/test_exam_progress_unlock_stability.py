@@ -91,7 +91,7 @@ class TestExamProgressUnlockStability(unittest.TestCase):
             instructor_id=cls.instructor.user_id,
             title=f"Stability Course {cls.test_run_id}",
             description="Testing Exam, Progress, and Unlock lifecycle",
-            status="published"
+            status="active"
         )
         db.session.add(cls.course)
         db.session.flush()
@@ -474,7 +474,7 @@ class TestExamProgressUnlockStability(unittest.TestCase):
         empty_course = Classroom(
             instructor_id=self.instructor.user_id,
             title=f"Empty Course {self.test_run_id}",
-            status="published"
+            status="active"
         )
         db.session.add(empty_course)
         db.session.flush()
