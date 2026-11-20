@@ -40,6 +40,19 @@ export const classroomService = {
     return response.data;
   },
 
+  // เปลี่ยนสถานะคอร์ส (POST /api/v1/classrooms/:id/status)
+  // ผลลัพธ์ขึ้นกับสิทธิ์: ขอ "active" แต่ไม่มีสิทธิ์ courses.publish → กลายเป็นรอตรวจสอบ
+  async changeClassroomStatus(classroomId, status) {
+    const response = await api.post(`/classrooms/${classroomId}/status`, { status });
+    return response.data;
+  },
+
+  // อนุมัติ / ไม่อนุมัติคอร์สที่รอตรวจสอบ (POST /api/v1/classrooms/:id/review)
+  async reviewClassroom(classroomId, approve, note = "") {
+    const response = await api.post(`/classrooms/${classroomId}/review`, { approve, note });
+    return response.data;
+  },
+
   // ลบคอร์สเรียน (DELETE /api/v1/classrooms/:id)
   async deleteClassroom(classroomId) {
     const response = await api.delete(`/classrooms/${classroomId}`);

@@ -9,6 +9,34 @@ from app.extensions import db
 # ตารางเสริม: ClassroomMember (Enrollment), Journal (บันทึกการเรียนรู้)
 # =====================================================================
 
+# ---------------------------------------------------------------------
+# สถานะคอร์ส (Classroom.status) มี 4 ค่า
+#   draft    = ฉบับร่าง     กำลังทำเนื้อหา เห็นเฉพาะเจ้าของคอร์สและ Admin
+#   pending  = รอตรวจสอบ   ผู้สอนส่งขอเผยแพร่ รอผู้มีสิทธิ์ courses.publish อนุมัติ
+#   active   = เผยแพร่แล้ว  ทุกคนเห็น (รวม Guest) และลงทะเบียนได้
+#   archived = เก็บถาวร     ซ่อนจากรายการคอร์ส ไม่รับลงทะเบียนใหม่
+#                           ผู้ที่ลงทะเบียนแล้วยังเข้าเรียนได้ กู้คืนกลับเป็นฉบับร่างได้
+# คอร์สที่ไม่ใช่ active: เห็นได้เฉพาะผู้ที่จัดการคอร์สได้ และผู้เรียนที่ลงทะเบียนไว้แล้ว
+# การเปลี่ยนสถานะทำผ่าน ClassroomService.change_status เท่านั้น (ตรวจสิทธิ์ตาม Permission Matrix)
+# ---------------------------------------------------------------------
+COURSE_STATUS_DRAFT = "draft"
+COURSE_STATUS_PENDING = "pending"
+COURSE_STATUS_ACTIVE = "active"
+COURSE_STATUS_ARCHIVED = "archived"
+COURSE_STATUSES = (
+    COURSE_STATUS_DRAFT,
+    COURSE_STATUS_PENDING,
+    COURSE_STATUS_ACTIVE,
+    COURSE_STATUS_ARCHIVED,
+)
+# ชื่อเรียกเดิมที่เคยใช้ในโค้ด จะถูกแปลงเป็นค่ามาตรฐานก่อนบันทึก
+# (ข้อมูลเก่าในฐานข้อมูลแปลงด้วย migration c3a1d5e7f902)
+COURSE_STATUS_ALIASES = {
+    "published": COURSE_STATUS_ACTIVE,
+    "under_review": COURSE_STATUS_PENDING,
+    "inactive": COURSE_STATUS_ARCHIVED,
+}
+
 
 class CourseCategory(db.Model):
     """Course category taxonomy (Module 2.1)."""
@@ -86,15 +114,18 @@ class Classroom(db.Model):
         db.String(512),
         nullable=True
     )
-    # สถานะคอร์ส: ตอนนี้โค้ดใช้งานจริงแค่ "active"
-    # - Guest/Student เห็นเฉพาะคอร์สที่ status = "active" (classroom_service)
-    # - ลงทะเบียนเรียนได้เฉพาะคอร์สที่ "active"
-    # - ยังไม่มีสถานะ draft/published และตอนสร้างคอร์สยังไม่ตรวจว่าค่าที่ส่งมาถูกต้อง
-    #   (เกี่ยวกับรายการแก้ข้อ 1, 17, 19)
+    # สถานะคอร์ส: ค่าที่ใช้ได้ดู COURSE_STATUSES ด้านบนของไฟล์
+    # คอร์สใหม่เริ่มเป็นฉบับร่าง ต้องกดเผยแพร่ก่อนผู้เรียนจึงจะเห็น
     status = db.Column(
         db.String(30),
         nullable=False,
-        default="active"
+        default=COURSE_STATUS_DRAFT
+    )
+    # เหตุผลล่าสุดที่ผู้ตรวจไม่อนุมัติการเผยแพร่ (แสดงให้ผู้สอนเห็นบนคอร์ส)
+    # ล้างค่าเมื่อส่งตรวจใหม่หรือเผยแพร่สำเร็จ
+    review_note = db.Column(
+        db.Text,
+        nullable=True
     )
     created_at = db.Column(
         db.DateTime(timezone=True),
@@ -141,6 +172,11 @@ class Classroom(db.Model):
         lazy="dynamic"
     )
 
+    @property
+    def is_published(self) -> bool:
+        """คอร์สเผยแพร่แล้วหรือยัง (Guest และผู้เรียนทั่วไปเห็นได้)"""
+        return self.status == COURSE_STATUS_ACTIVE
+
     def has_member(self, user_id) -> bool:
         """ตรวจสอบว่าผู้ใช้เป็นสมาชิก (ลงทะเบียน) ในคอร์สนี้หรือไม่"""
         str_id = str(user_id)
@@ -159,6 +195,7 @@ class Classroom(db.Model):
             "description": self.description,
             "thumbnail_url": self.thumbnail_url,
             "status": self.status,
+            "review_note": self.review_note,
             "member_count": len(self.members),
             "lesson_count": len(self.lessons),
             "chapter_count": len(self.chapters) if self.chapters else len(self.lessons),

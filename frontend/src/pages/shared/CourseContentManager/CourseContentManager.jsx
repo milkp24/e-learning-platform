@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import classroomService from "../../../services/classroomService";
 import useAuthStore from "../../../store/useAuthStore";
 import {
@@ -18,6 +18,7 @@ import ContentBlockModalManager from "./components/ContentBlockModalManager";
 import StudentPreviewModal from "./components/StudentPreviewModal";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
+import { getStatusActions } from "../../../features/courses/utils/courseStatus";
 
 /**
  * CourseContentManager Page Component (หน้าจัดการเนื้อหาคอร์สเรียน)
@@ -34,6 +35,7 @@ function CourseContentManager() {
   const { classroomId: rawClassroomId, id: rawId } = useParams();
   const classroomId = rawClassroomId || rawId;
   const navigate = useNavigate();
+  const location = useLocation();
   const { hasRole } = useAuthStore();
 
   const isIoT101 = classroomId === "iot-101";
@@ -51,6 +53,7 @@ function CourseContentManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [isCoursePublishing, setIsCoursePublishing] = useState(false);
 
   // มุมมองแท็บบน Mobile ('tree' | 'builder')
   const [mobileTab, setMobileTab] = useState("builder");
@@ -775,6 +778,38 @@ function CourseContentManager() {
   };
 
   // 10. จัดการ Unsaved Changes Navigation
+  // ข้อความจากหน้าก่อน (เช่น "ส่งคอร์สให้ผู้ดูแลตรวจสอบแล้ว" หลังสร้างคอร์ส) แสดงครั้งเดียว
+  useEffect(() => {
+    if (location.state?.notice) {
+      showToast("success", location.state.notice);
+      navigate(location.pathname + location.search, { replace: true, state: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ปุ่มสถานะคอร์ส (เผยแพร่ / ส่งตรวจ / อนุมัติ / ยกเลิกเผยแพร่ / เก็บถาวร / กู้คืน) ชุดเดียวกับหน้ารายการคอร์ส
+  // คอร์สที่สร้างใหม่เป็นฉบับร่าง และระบบพามาหน้านี้ จึงต้องเผยแพร่หรือส่งตรวจจากหน้านี้ได้
+  // "ไม่อนุมัติ" ต้องกรอกเหตุผล จึงทำจากหน้าตรวจคอร์สก่อนเผยแพร่เท่านั้น
+  const courseActions = isIoT101 ? [] : getStatusActions(course).filter((a) => a.key !== "reject");
+
+  const handleCourseStatusAction = async (action) => {
+    if (!course || isIoT101) return;
+    setIsCoursePublishing(true);
+    try {
+      const res =
+        action.key === "approve"
+          ? await classroomService.reviewClassroom(classroomId, true)
+          : await classroomService.changeClassroomStatus(classroomId, action.status);
+      const updated = res?.classroom || res?.course;
+      if (updated) setCourse((prev) => ({ ...prev, ...updated }));
+      showToast("success", res?.message || "บันทึกสถานะคอร์สแล้ว");
+    } catch (err) {
+      showToast("error", err.response?.data?.message || "เปลี่ยนสถานะคอร์สไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsCoursePublishing(false);
+    }
+  };
+
   const handleBackToCourses = () => {
     if (isDirty) {
       setPendingNavigation({ type: "route", path: "/admin/courses" });
@@ -844,6 +879,10 @@ function CourseContentManager() {
         onTabChange={setMobileTab}
         onBack={handleBackToCourses}
         toastMessage={toastMessage}
+        course={isIoT101 ? null : course}
+        courseActions={courseActions}
+        onCourseStatusAction={handleCourseStatusAction}
+        isPublishing={isCoursePublishing}
       />
 
       {/* 2. พื้นที่การทำงานหลัก 2 คอลัมน์ (Desktop: ซ้าย-ขวา, Mobile: สลับแท็บ) */}

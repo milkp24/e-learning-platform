@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { RowActionGroup, RowTextButton, RowIconButton } from "../../../components/common/RowActions";
+import PageHeaderButton from "../../../components/layout/PageHeader/PageHeaderButton";
 import {
   LuUserPlus,
   LuSearch,
@@ -150,26 +152,19 @@ export default function Staff() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setIsAuditOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#E5E9E7] bg-white text-xs font-semibold text-[#26332F] hover:bg-[#FAFAFA] transition shadow-2xs cursor-pointer"
-          >
-            <LuHistory className="h-4 w-4 text-[#004643]" />
-            <span>ประวัติการเปลี่ยนแปลง</span>
-          </button>
+          <PageHeaderButton variant="secondary" icon={LuHistory} onClick={() => setIsAuditOpen(true)}>
+            ประวัติการเปลี่ยนแปลง
+          </PageHeaderButton>
 
-          <button
-            type="button"
+          <PageHeaderButton
+            icon={LuUserPlus}
             onClick={() => {
               setStaffToEdit(null);
               setIsAddOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#ABD1C6] text-xs font-bold text-[#004643] hover:bg-[#97c4b7] active:scale-98 transition shadow-xs cursor-pointer"
           >
-            <LuUserPlus className="h-4 w-4" />
-            <span>+ เพิ่มเจ้าหน้าที่</span>
-          </button>
+            เพิ่มเจ้าหน้าที่
+          </PageHeaderButton>
         </div>
       </div>
 
@@ -400,63 +395,38 @@ export default function Staff() {
 
                       {/* Column 7: การจัดการ */}
                       <td className="py-3.5 pr-4 sm:pr-6 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* กำหนดสิทธิ์ Button */}
-                          <button
-                            type="button"
+                        {/* [กำหนดสิทธิ์] [แก้ไข] [เปิด-ปิด] [ลบ] รูปแบบเดียวกับทุกตารางในระบบ (RowActions) */}
+                        <RowActionGroup>
+                          <RowTextButton
+                            icon={LuSlidersHorizontal}
                             onClick={() => setStaffForPermission(staff)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#E5E9E7] bg-white text-xs font-semibold text-[#004643] hover:bg-[#ABD1C6]/20 transition cursor-pointer"
                             title="กำหนดสิทธิ์เฉพาะบุคคล (Permission Matrix)"
                           >
-                            <LuSlidersHorizontal className="h-3.5 w-3.5" />
-                            <span>กำหนดสิทธิ์</span>
-                          </button>
-
-                          {/* แก้ไข Button */}
-                          <button
-                            type="button"
+                            กำหนดสิทธิ์
+                          </RowTextButton>
+                          <RowIconButton
+                            icon={LuEdit}
+                            label="แก้ไขข้อมูลเจ้าหน้าที่"
                             onClick={() => {
                               setStaffToEdit(staff);
                               setIsAddOpen(true);
                             }}
-                            className="p-1.5 rounded-lg border border-[#E5E9E7] bg-white text-[#26332F] hover:bg-[#FAFAFA] transition cursor-pointer"
-                            title="แก้ไขข้อมูลเจ้าหน้าที่"
-                          >
-                            <LuEdit className="h-3.5 w-3.5" />
-                          </button>
-
-                          {/* สลับสถานะ Button */}
-                          <button
-                            type="button"
+                          />
+                          <RowIconButton
+                            icon={LuPower}
+                            tone="warning"
+                            label={staff.status === "active" ? "ปิดการใช้งาน" : "เปิดการใช้งาน"}
                             onClick={() => handleToggleStatus(staff)}
-                            className={`p-1.5 rounded-lg border transition cursor-pointer ${
-                              staff.status === "active"
-                                ? "border-[#E5E9E7] bg-white text-amber-700 hover:bg-amber-50"
-                                : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                            }`}
-                            title={
-                              staff.status === "active"
-                                ? "ปิดการใช้งาน"
-                                : "เปิดการใช้งาน"
-                            }
-                          >
-                            <LuPower className="h-3.5 w-3.5" />
-                          </button>
-
-                          {/* ลบ Button */}
-                          <button
-                            type="button"
+                          />
+                          <RowIconButton
+                            icon={LuTrash2}
+                            tone="danger"
+                            label="ลบเจ้าหน้าที่"
                             onClick={() => handleDeleteStaff(staff)}
-                            disabled={
-                              staff.roleId === "super_admin" &&
-                              staff.id === "staff_1"
-                            }
-                            className="p-1.5 rounded-lg border border-transparent text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="ลบเจ้าหน้าที่"
-                          >
-                            <LuTrash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+                            disabled={staff.roleId === "super_admin" && staff.id === "staff_1"}
+                            disabledReason="ลบบัญชี Super Admin หลักไม่ได้"
+                          />
+                        </RowActionGroup>
                       </td>
                     </tr>
                   );

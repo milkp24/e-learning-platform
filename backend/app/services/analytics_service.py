@@ -40,7 +40,7 @@ class AnalyticsService:
         total_courses = Classroom.query.count()
         published_courses = Classroom.query.filter_by(status="active").count()
         draft_courses = Classroom.query.filter_by(status="draft").count()
-        archived_courses = Classroom.query.filter_by(status="archived").count()
+        archived_courses = Classroom.query.filter(Classroom.status.in_(["inactive", "archived"])).count()
 
         total_lessons = Lesson.query.count()
         total_quizzes = Quiz.query.count()
@@ -126,7 +126,7 @@ class AnalyticsService:
         total_courses = Classroom.query.count()
         published_courses = Classroom.query.filter_by(status="active").count()
         draft_courses = Classroom.query.filter_by(status="draft").count()
-        archived_courses = Classroom.query.filter_by(status="archived").count()
+        archived_courses = Classroom.query.filter(Classroom.status.in_(["inactive", "archived"])).count()
 
         total_lessons = Lesson.query.count()
         total_quizzes = Quiz.query.count()

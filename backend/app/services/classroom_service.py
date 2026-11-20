@@ -2,9 +2,21 @@ import uuid
 from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models.user import User
+from app.models.role import Role
+from app.models.admin import AuditLog, Notification
 from app.models.classroom import (
-    Classroom, ClassroomMember, Lesson, Chapter, Episode, Content, Media, Journal
+    Classroom, ClassroomMember, Lesson, Chapter, Episode, Content, Media, Journal,
+    COURSE_STATUSES, COURSE_STATUS_ALIASES, COURSE_STATUS_ACTIVE, COURSE_STATUS_DRAFT,
+    COURSE_STATUS_PENDING, COURSE_STATUS_ARCHIVED,
 )
+
+# สิทธิ์ใน Permission Matrix ที่ใช้กับสถานะคอร์ส
+# - courses.publish   : เผยแพร่ได้ทันทีโดยไม่ต้องรออนุมัติ และอนุมัติคอร์สที่รอตรวจสอบได้
+# - courses.unpublish : ยกเลิกเผยแพร่ / เก็บถาวรคอร์สที่เผยแพร่อยู่
+# ค่าเริ่มต้น: Admin และ Super Admin มีทั้งสองสิทธิ์, Instructor ไม่มี (ต้องส่งตรวจ)
+# Super Admin ปรับให้ Role ไหนเผยแพร่เองได้ผ่านหน้า Dynamic Permission Matrix
+PERM_COURSE_PUBLISH = "courses.publish"
+PERM_COURSE_UNPUBLISH = "courses.unpublish"
 from app.models.progress import LearningProgress, LessonProgress, EpisodeProgress
 from app.models.exercise import Exercise, ExerciseAttempt, CodingExercise, CodeSubmission, CodeExecution, TestCase
 from app.models.quiz import Quiz, QuizCondition, QuizQuestion, QuizAttempt, QuizAnswer, QuizResult
@@ -46,6 +58,230 @@ class ClassroomService:
             return True
         return False
 
+    @classmethod
+    def can_view_classroom(cls, classroom: Classroom | None, user: User | None) -> bool:
+        """ตรวจสอบสิทธิ์การมองเห็นคอร์ส (ข้อ 1, 17)
+        - คอร์สที่เผยแพร่แล้ว (active): ทุกคนเห็น รวมถึง Guest
+        - คอร์สฉบับร่าง (draft): เห็นเฉพาะผู้ที่จัดการคอร์สได้
+          และผู้เรียนที่ลงทะเบียนไว้ก่อนแล้ว (เพื่อให้เรียนต่อได้เมื่อคอร์สถูกยกเลิกเผยแพร่)
+        """
+        if not classroom:
+            return False
+        if classroom.status == COURSE_STATUS_ACTIVE:
+            return True
+        if cls.can_manage_classroom(classroom, user):
+            return True
+        return bool(user and classroom.has_member(user.user_id))
+
+    @staticmethod
+    def normalize_status(raw_status) -> str:
+        """แปลงและตรวจค่าสถานะคอร์สที่รับมาจาก Request
+        รับชื่อเดิม (published, under_review, inactive) ได้ แต่จะบันทึกเป็นค่ามาตรฐานเสมอ
+        ค่าที่ไม่รู้จักจะถูกปฏิเสธด้วย 400 แทนการบันทึกค่าผิดลงฐานข้อมูล
+        """
+        value = str(raw_status or "").strip().lower()
+        value = COURSE_STATUS_ALIASES.get(value, value)
+        if value not in COURSE_STATUSES:
+            raise ClassroomServiceError(
+                "สถานะคอร์สไม่ถูกต้อง ต้องเป็น draft, pending, active หรือ archived",
+                400,
+                "Validation Error",
+            )
+        return value
+
+    # =========================================================================
+    # 1b. สถานะคอร์สและการอนุมัติเผยแพร่ (ข้อ 1, 17, 19 + work flow ฝั่ง Admin)
+    #
+    #   draft ──(มีสิทธิ์ courses.publish)──────────────► active
+    #   draft ──(ไม่มีสิทธิ์: ส่งตรวจ)──► pending ──อนุมัติ──► active
+    #                                     pending ──ไม่อนุมัติ (มีเหตุผล)──► draft
+    #                                     pending ──ผู้สอนยกเลิกคำขอ──► draft
+    #   active ──(courses.unpublish)──► draft / archived
+    #   archived ──กู้คืน──► draft
+    # =========================================================================
+
+    @staticmethod
+    def can_publish_directly(user: User | None) -> bool:
+        return bool(user and user.has_permission(PERM_COURSE_PUBLISH))
+
+    @staticmethod
+    def can_unpublish(user: User | None) -> bool:
+        return bool(user and user.has_permission(PERM_COURSE_UNPUBLISH))
+
+    @classmethod
+    def course_capabilities(cls, classroom: Classroom, user: User | None) -> dict:
+        """สิ่งที่ผู้ใช้ทำกับคอร์สนี้ได้ ส่งให้หน้าเว็บใช้ซ่อน/แสดงปุ่ม (Backend ตรวจซ้ำทุกครั้งที่กด)"""
+        manage = cls.can_manage_classroom(classroom, user)
+        publish = manage and cls.can_publish_directly(user)
+        return {
+            "can_manage": manage,
+            "can_publish": publish,
+            "can_unpublish": manage and cls.can_unpublish(user),
+            "can_review": publish and classroom.status == COURSE_STATUS_PENDING,
+        }
+
+    @staticmethod
+    def _log_status(user: User, classroom: Classroom, action: str, details: dict) -> None:
+        db.session.add(AuditLog(
+            user_id=user.user_id,
+            action=action,
+            entity_type="course",
+            entity_id=classroom.classroom_id,
+            details={"title": classroom.title, **details},
+        ))
+
+    @staticmethod
+    def _notify(user_ids, title: str, message: str, classroom: Classroom) -> None:
+        for uid in {str(u) for u in user_ids if u}:
+            db.session.add(Notification(
+                user_id=uuid.UUID(uid),
+                title=title,
+                message=message,
+                notification_type="course_review",
+                link_url=f"/classrooms/{classroom.classroom_id}",
+            ))
+
+    @staticmethod
+    def _reviewer_ids() -> list:
+        """ผู้ที่อนุมัติคอร์สได้ (Admin / Super Admin ที่มีสิทธิ์ courses.publish)"""
+        candidates = User.query.filter(
+            User.status == "active",
+            User.roles.any(Role.role_name.in_(["admin", "super_admin"])),
+        ).all()
+        return [u.user_id for u in candidates if u.has_permission(PERM_COURSE_PUBLISH)]
+
+    @classmethod
+    def apply_status_change(cls, classroom: Classroom, user: User, target_raw) -> str:
+        """เปลี่ยนสถานะคอร์สตามสิทธิ์ของผู้ใช้ (ยังไม่ commit) คืนข้อความสำหรับแสดงผล
+        - ขอเผยแพร่ (active): มี courses.publish = เผยแพร่ทันที / ไม่มี = ส่งตรวจ (pending)
+        - ออกจากสถานะเผยแพร่ (ยกเลิกเผยแพร่ / เก็บถาวร) ต้องมี courses.unpublish
+        """
+        if not cls.can_manage_classroom(classroom, user):
+            raise ClassroomServiceError("คุณไม่มีสิทธิ์เปลี่ยนสถานะคอร์สนี้", 403, "Forbidden")
+
+        target = cls.normalize_status(target_raw)
+        current = classroom.status
+        if target == current:
+            return "สถานะคอร์สไม่มีการเปลี่ยนแปลง"
+
+        if target in (COURSE_STATUS_ACTIVE, COURSE_STATUS_PENDING):
+            if current == COURSE_STATUS_ACTIVE:
+                raise ClassroomServiceError("คอร์สนี้เผยแพร่อยู่แล้ว", 409, "Conflict")
+            if target == COURSE_STATUS_ACTIVE and cls.can_publish_directly(user):
+                new_status = COURSE_STATUS_ACTIVE
+            elif current == COURSE_STATUS_PENDING:
+                raise ClassroomServiceError(
+                    "คอร์สนี้รอผู้ดูแลตรวจสอบอยู่แล้ว", 409, "Conflict"
+                )
+            else:
+                new_status = COURSE_STATUS_PENDING
+        else:
+            if current == COURSE_STATUS_ACTIVE and not cls.can_unpublish(user):
+                raise ClassroomServiceError(
+                    "คุณไม่มีสิทธิ์ยกเลิกการเผยแพร่คอร์ส กรุณาติดต่อผู้ดูแลระบบ", 403, "Forbidden"
+                )
+            new_status = target
+
+        classroom.status = new_status
+        if new_status in (COURSE_STATUS_ACTIVE, COURSE_STATUS_PENDING):
+            classroom.review_note = None
+        cls._log_status(user, classroom, "COURSE_STATUS_CHANGED", {"from": current, "to": new_status})
+
+        is_owner = str(classroom.instructor_id) == str(user.user_id)
+        if new_status == COURSE_STATUS_PENDING:
+            cls._notify(
+                cls._reviewer_ids(),
+                "มีคอร์สรอตรวจสอบ",
+                f'คอร์ส "{classroom.title}" ส่งขอเผยแพร่ กรุณาตรวจสอบก่อนเผยแพร่',
+                classroom,
+            )
+            return "ส่งคอร์สให้ผู้ดูแลตรวจสอบแล้ว คอร์สจะเผยแพร่เมื่อได้รับการอนุมัติ"
+        if new_status == COURSE_STATUS_ACTIVE:
+            if current == COURSE_STATUS_PENDING and not is_owner:
+                cls._notify(
+                    [classroom.instructor_id],
+                    "คอร์สได้รับการอนุมัติ",
+                    f'คอร์ส "{classroom.title}" ได้รับการอนุมัติและเผยแพร่แล้ว',
+                    classroom,
+                )
+                return "อนุมัติและเผยแพร่คอร์สแล้ว"
+            return "เผยแพร่คอร์สแล้ว ผู้เรียนและผู้เยี่ยมชมเห็นคอร์สนี้ได้"
+        if new_status == COURSE_STATUS_ARCHIVED:
+            return "เก็บคอร์สถาวรแล้ว ผู้ที่ลงทะเบียนไว้ยังเข้าเรียนได้"
+        if current == COURSE_STATUS_ARCHIVED:
+            return "กู้คืนคอร์สเป็นฉบับร่างแล้ว"
+        if current == COURSE_STATUS_PENDING:
+            return "ยกเลิกคำขอเผยแพร่แล้ว คอร์สกลับเป็นฉบับร่าง"
+        return "ยกเลิกการเผยแพร่แล้ว คอร์สกลับเป็นฉบับร่าง"
+
+    @classmethod
+    def _get_or_404(cls, classroom_id_raw: str) -> Classroom:
+        try:
+            c_uuid = uuid.UUID(str(classroom_id_raw))
+        except (ValueError, TypeError):
+            raise ClassroomServiceError("Invalid classroom ID format.", 400, "Bad Request")
+        classroom = db.session.get(Classroom, c_uuid)
+        if not classroom:
+            raise ClassroomServiceError("Classroom not found.", 404, "Not Found")
+        return classroom
+
+    @classmethod
+    def change_status(cls, classroom_id_raw: str, user: User | None, data: dict) -> dict:
+        """POST /classrooms/<id>/status  { "status": "active" | "draft" | "archived" | "pending" }"""
+        if not user:
+            raise ClassroomServiceError("User not found.", 401, "Unauthorized")
+        classroom = cls._get_or_404(classroom_id_raw)
+        if not cls.can_view_classroom(classroom, user):
+            raise ClassroomServiceError("Classroom not found.", 404, "Not Found")
+        message = cls.apply_status_change(classroom, user, (data or {}).get("status"))
+        db.session.commit()
+        c_dict = classroom.to_dict()
+        c_dict.update(cls.course_capabilities(classroom, user))
+        return {"message": message, "classroom": c_dict, "course": c_dict}
+
+    @classmethod
+    def review_classroom(cls, classroom_id_raw: str, user: User | None, data: dict) -> dict:
+        """POST /classrooms/<id>/review  { "approve": true } หรือ { "approve": false, "note": "เหตุผล" }
+        ผู้ตรวจต้องจัดการคอร์สได้และมีสิทธิ์ courses.publish
+        """
+        if not user:
+            raise ClassroomServiceError("User not found.", 401, "Unauthorized")
+        classroom = cls._get_or_404(classroom_id_raw)
+        if not cls.can_manage_classroom(classroom, user) or not cls.can_publish_directly(user):
+            raise ClassroomServiceError("คุณไม่มีสิทธิ์อนุมัติการเผยแพร่คอร์ส", 403, "Forbidden")
+        if classroom.status != COURSE_STATUS_PENDING:
+            raise ClassroomServiceError("คอร์สนี้ไม่ได้อยู่ในสถานะรอตรวจสอบ", 409, "Conflict")
+
+        data = data or {}
+        if data.get("approve") is True:
+            message = cls.apply_status_change(classroom, user, COURSE_STATUS_ACTIVE)
+        elif data.get("approve") is False:
+            note = str(data.get("note") or "").strip()
+            if not note:
+                raise ClassroomServiceError(
+                    "กรุณาระบุเหตุผลที่ไม่อนุมัติ เพื่อให้ผู้สอนแก้ไขได้", 400, "Validation Error"
+                )
+            classroom.status = COURSE_STATUS_DRAFT
+            classroom.review_note = note[:2000]
+            cls._log_status(
+                user, classroom, "COURSE_REVIEW_REJECTED",
+                {"from": COURSE_STATUS_PENDING, "to": COURSE_STATUS_DRAFT, "note": classroom.review_note},
+            )
+            cls._notify(
+                [classroom.instructor_id],
+                "คอร์สไม่ได้รับการอนุมัติ",
+                f'คอร์ส "{classroom.title}" ยังไม่ได้รับการอนุมัติ: {classroom.review_note}',
+                classroom,
+            )
+            message = "ไม่อนุมัติการเผยแพร่ คอร์สกลับเป็นฉบับร่างพร้อมเหตุผลให้ผู้สอน"
+        else:
+            raise ClassroomServiceError("กรุณาระบุ approve เป็น true หรือ false", 400, "Validation Error")
+
+        db.session.commit()
+        c_dict = classroom.to_dict()
+        c_dict.update(cls.course_capabilities(classroom, user))
+        return {"message": message, "classroom": c_dict, "course": c_dict}
+
     # =========================================================================
     # 2. Classroom (Course) CRUD & Catalog
     # =========================================================================
@@ -54,16 +290,24 @@ class ClassroomService:
     def list_classrooms(cls, current_user: User | None, status_filter: str | None = None) -> dict:
         """
         แสดงรายการคอร์สเรียนทั้งหมดในระบบ (Course Catalog) (UAT-020, UAT-026)
-        - หากเป็น Guest หรือ Student ให้แสดงเฉพาะคอร์สที่ active
+        - Guest และผู้เรียน: เห็นเฉพาะคอร์สที่เผยแพร่แล้ว (active)
+        - Instructor: เห็นคอร์สที่เผยแพร่แล้ว + คอร์สของตัวเองทุกสถานะ (ไม่เห็นฉบับร่างของคนอื่น)
+        - Admin / Super Admin: เห็นทุกคอร์ส
+        - status_filter (?status=draft ฯลฯ) ใช้กรองต่อจากสิทธิ์ข้างบน จึงขยายสิ่งที่มองเห็นไม่ได้
         - ตรวจสอบว่าผู้ใช้ปัจจุบันลงทะเบียนคอร์สใดไปแล้วบ้าง (is_enrolled)
         - ตรวจสอบความเป็นเจ้าของคอร์ส (is_owner)
         """
         query = Classroom.query
 
-        if not current_user or current_user.has_role("student"):
-            query = query.filter_by(status="active")
-        elif status_filter:
-            query = query.filter_by(status=status_filter)
+        is_admin = bool(current_user and (current_user.has_role("admin") or current_user.has_role("super_admin")))
+        if not is_admin:
+            visible = Classroom.status == COURSE_STATUS_ACTIVE
+            if current_user and current_user.has_role("instructor"):
+                visible = visible | (Classroom.instructor_id == current_user.user_id)
+            query = query.filter(visible)
+
+        if status_filter:
+            query = query.filter(Classroom.status == cls.normalize_status(status_filter))
 
         classrooms = query.order_by(Classroom.created_at.desc()).all()
 
@@ -79,9 +323,15 @@ class ClassroomService:
             c_dict = c.to_dict()
             c_dict["is_enrolled"] = str(c.classroom_id) in enrolled_classroom_ids
             c_dict["is_owner"] = bool(current_user and str(c.instructor_id) == str(current_user.user_id))
+            c_dict.update(cls.course_capabilities(c, current_user))
             results.append(c_dict)
 
         return {
+            # สิ่งที่ผู้ใช้ทำได้ในระดับหน้า เช่น ตัวเลือกในฟอร์มสร้างคอร์ส
+            "capabilities": {
+                "can_publish": cls.can_publish_directly(current_user),
+                "can_review": bool(is_admin and cls.can_publish_directly(current_user)),
+            },
             "classrooms": results,
             "courses": results  # Alias
         }
@@ -134,7 +384,9 @@ class ClassroomService:
 
         description = data.get("description")
         thumbnail_url = data.get("thumbnail_url")
-        status = data.get("status", "active")
+        # คอร์สใหม่เริ่มเป็นฉบับร่างเสมอ ถ้าขอสถานะอื่นจะเปลี่ยนผ่าน apply_status_change
+        # (ผู้ไม่มีสิทธิ์ courses.publish ที่ขอเผยแพร่ จะกลายเป็นรอตรวจสอบ)
+        requested_status = cls.normalize_status(data.get("status") or COURSE_STATUS_DRAFT)
 
         instructor_id = user.user_id
         if user.has_role("admin") and data.get("instructor_id"):
@@ -151,20 +403,26 @@ class ClassroomService:
             title=title.strip(),
             description=description.strip() if description else None,
             thumbnail_url=thumbnail_url.strip() if thumbnail_url else None,
-            status=status
+            status=COURSE_STATUS_DRAFT
         )
 
         try:
             db.session.add(new_classroom)
+            db.session.flush()
+            message = "สร้างคอร์สเป็นฉบับร่างแล้ว"
+            if requested_status != COURSE_STATUS_DRAFT:
+                message = cls.apply_status_change(new_classroom, user, requested_status)
             db.session.commit()
-            return {
-                "message": "Classroom created successfully.",
-                "classroom": new_classroom.to_dict(include_lessons=True),
-                "course": new_classroom.to_dict(include_lessons=True)
-            }, 201
+        except ClassroomServiceError:
+            db.session.rollback()
+            raise
         except Exception:
             db.session.rollback()
             raise ClassroomServiceError("Failed to create classroom.", 500, "Internal Server Error")
+
+        c_dict = new_classroom.to_dict(include_lessons=True)
+        c_dict.update(cls.course_capabilities(new_classroom, user))
+        return {"message": message, "classroom": c_dict, "course": c_dict}, 201
 
     @classmethod
     def get_classroom(cls, classroom_id_raw: str, current_user: User | None) -> dict:
@@ -179,7 +437,9 @@ class ClassroomService:
             raise ClassroomServiceError("Invalid classroom ID format.", 400, "Bad Request")
 
         classroom = db.session.get(Classroom, c_uuid)
-        if not classroom:
+        # คอร์สที่ผู้ใช้ไม่มีสิทธิ์มองเห็น (เช่น Guest เปิดลิงก์ฉบับร่าง) ตอบเหมือนไม่มีคอร์สนี้
+        # เพื่อไม่ให้รู้ได้ว่ามีคอร์สนี้อยู่
+        if not classroom or not cls.can_view_classroom(classroom, current_user):
             raise ClassroomServiceError("Classroom not found.", 404, "Not Found")
 
         is_enrolled = False
@@ -192,6 +452,7 @@ class ClassroomService:
         c_dict = classroom.to_dict(include_members=is_owner, include_lessons=True)
         c_dict["is_enrolled"] = is_enrolled
         c_dict["is_owner"] = is_owner
+        c_dict.update(cls.course_capabilities(classroom, current_user))
 
         return {
             "classroom": c_dict,
@@ -234,19 +495,19 @@ class ClassroomService:
         if "thumbnail_url" in data:
             classroom.thumbnail_url = data.get("thumbnail_url")
 
+        message = "Classroom updated successfully."
         if "status" in data:
-            classroom.status = data.get("status")
+            # เปลี่ยนสถานะผ่านกติกาเดียวกับปุ่มเผยแพร่ (ตรวจสิทธิ์ courses.publish / unpublish)
+            message = cls.apply_status_change(classroom, user, data.get("status"))
 
         try:
             db.session.commit()
-            return {
-                "message": "Classroom updated successfully.",
-                "classroom": classroom.to_dict(),
-                "course": classroom.to_dict()
-            }
         except Exception:
             db.session.rollback()
             raise ClassroomServiceError("Failed to update classroom.", 500, "Internal Server Error")
+        c_dict = classroom.to_dict()
+        c_dict.update(cls.course_capabilities(classroom, user))
+        return {"message": message, "classroom": c_dict, "course": c_dict}
 
     @classmethod
     def delete_classroom(cls, classroom_id_raw: str, user: User | None) -> dict:
@@ -436,8 +697,8 @@ class ClassroomService:
         if not classroom:
             raise ClassroomServiceError("Classroom not found.", 404, "Not Found")
 
-        if classroom.status != "active":
-            raise ClassroomServiceError("This course is not currently active for enrollment.", 403, "Forbidden")
+        if classroom.status != COURSE_STATUS_ACTIVE:
+            raise ClassroomServiceError("คอร์สนี้ยังไม่เปิดให้ลงทะเบียน", 403, "Forbidden")
 
         if user.has_role("instructor") or user.has_role("admin") or not user.has_role("student"):
             raise ClassroomServiceError(

@@ -5,6 +5,8 @@
 
 export const COURSES_PER_PAGE = 9;
 
+import { normalizeCourseStatus } from "./courseStatus";
+
 const norm = (v) => (v || "").toString().trim().toLowerCase();
 
 /**
@@ -12,6 +14,8 @@ const norm = (v) => (v || "").toString().trim().toLowerCase();
  * @param {Array} courses รายการคอร์สจาก API (/classrooms)
  * @param {{category?: string, view?: string, instructor?: string, q?: string}} filters
  *   view: "all" | "mine" (ลงทะเบียนหรือเป็นเจ้าของ) | "owned" (เป็นเจ้าของ)
+ *         | "drafts" (ฉบับร่าง) | "pending" (รอตรวจสอบ)
+ *   Backend ส่งคอร์สที่ยังไม่เผยแพร่มาเฉพาะคอร์สที่ผู้ใช้จัดการได้อยู่แล้ว
  */
 export function filterCourses(courses = [], { category = "", view = "all", instructor = "", q = "" } = {}) {
   const keyword = norm(q);
@@ -21,6 +25,8 @@ export function filterCourses(courses = [], { category = "", view = "all", instr
     if (cat && norm(c.category_name) !== cat) return false;
     if (view === "mine" && !(c.is_enrolled || c.is_owner)) return false;
     if (view === "owned" && !c.is_owner) return false;
+    if (view === "drafts" && normalizeCourseStatus(c.status) !== "draft") return false;
+    if (view === "pending" && normalizeCourseStatus(c.status) !== "pending") return false;
     if (instructor && String(c.instructor_id) !== String(instructor)) return false;
     if (keyword) {
       const haystack = [c.title, c.description, c.instructor_name, c.category_name].map(norm).join(" ");

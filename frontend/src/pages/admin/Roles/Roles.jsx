@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import PageHeaderButton from "../../../components/layout/PageHeader/PageHeaderButton";
 import {
   LuBan,
   LuCheck,
@@ -311,26 +312,19 @@ function Roles() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setIsAuditOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#E5E9E7] bg-white text-xs font-semibold text-[#26332F] hover:bg-[#FAFAFA] transition shadow-2xs cursor-pointer"
-          >
-            <LuHistory className="h-4 w-4 text-[#004643]" />
-            <span>ประวัติการเปลี่ยนแปลง</span>
-          </button>
+          <PageHeaderButton variant="secondary" icon={LuHistory} onClick={() => setIsAuditOpen(true)}>
+            ประวัติการเปลี่ยนแปลง
+          </PageHeaderButton>
 
-          <button
-            type="button"
+          <PageHeaderButton
+            icon={LuPlus}
             onClick={() => {
               setRoleToEdit(null);
               setIsRoleEditorOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#ABD1C6] text-xs font-bold text-[#004643] hover:bg-[#97c4b7] active:scale-98 transition shadow-xs cursor-pointer"
           >
-            <LuPlus className="h-4 w-4" />
-            <span>+ สร้างบทบาทใหม่</span>
-          </button>
+            สร้างบทบาทใหม่
+          </PageHeaderButton>
         </div>
       </div>
 

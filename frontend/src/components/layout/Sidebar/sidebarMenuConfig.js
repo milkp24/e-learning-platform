@@ -17,6 +17,8 @@ import {
   LuSettings,
   LuLock,
   LuBuilding,
+  LuFilePen,
+  LuClipboardCheck,
 } from "react-icons/lu";
 
 /**
@@ -202,6 +204,12 @@ export const getInstructorMenu = ({ isAdmin = false, isSuperAdmin = false } = {}
           icon: LuBookMarked,
           type: "link",
         },
+        {
+          label: "คอร์สฉบับร่าง",
+          path: "/classrooms?view=drafts",
+          icon: LuFilePen,
+          type: "link",
+        },
       ],
     },
     {
@@ -340,6 +348,18 @@ export const getAdminMenu = ({ isSuperAdmin = false } = {}) => {
           label: "คอร์สเรียนของฉัน",
           path: "/classrooms?view=mine",
           icon: LuBookMarked,
+          type: "link",
+        },
+        {
+          label: "คอร์สฉบับร่าง",
+          path: "/classrooms?view=drafts",
+          icon: LuFilePen,
+          type: "link",
+        },
+        {
+          label: "ตรวจคอร์สก่อนเผยแพร่",
+          path: "/classrooms?view=pending",
+          icon: LuClipboardCheck,
           type: "link",
         },
       ],

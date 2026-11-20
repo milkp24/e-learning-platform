@@ -1,4 +1,6 @@
 import { useState } from "react";
+import PageHeaderButton from "../../../../components/layout/PageHeader/PageHeaderButton";
+import { RowActionGroup, RowTextButton, RowIconButton } from "../../../../components/common/RowActions";
 import { Link } from "react-router-dom";
 import {
   LuBookOpen,
@@ -8,6 +10,7 @@ import {
   LuChevronRight,
   LuLock,
   LuListTree,
+  LuTrash2,
 } from "react-icons/lu";
 
 /**
@@ -194,25 +197,23 @@ function StandardLessonsSection({
             ) : null}
 
             {isOwnerOrAdmin && (
-              <div className="flex items-center gap-1">
-                <Link
+              <RowActionGroup>
+                <RowTextButton
+                  icon={LuListTree}
                   to={`/classrooms/${classroomId}/manage`}
-                  className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 font-semibold shadow-2xs"
                   title="จัดการเนื้อหาในบทเรียนนี้"
                 >
-                  <LuListTree className="h-3.5 w-3.5 inline mr-1" />
-                  <span>จัดการ</span>
-                </Link>
+                  จัดการ
+                </RowTextButton>
                 {onDeleteLesson && (
-                  <button
+                  <RowIconButton
+                    icon={LuTrash2}
+                    tone="danger"
+                    label={`ลบบทเรียน ${lesson.title || ""}`}
                     onClick={() => onDeleteLesson(lessonId)}
-                    type="button"
-                    className="rounded-xl px-2.5 py-1.5 text-xs text-red-500 hover:bg-red-50 font-semibold cursor-pointer"
-                  >
-                    ลบ
-                  </button>
+                  />
                 )}
-              </div>
+              </RowActionGroup>
             )}
           </div>
         </div>
@@ -246,13 +247,7 @@ function StandardLessonsSection({
           </p>
         </div>
         {isOwnerOrAdmin && (
-          <button
-            onClick={onOpenAddLessonModal}
-            type="button"
-            className="rounded-xl bg-[#ABD1C6] px-4 py-2 text-xs font-bold text-[#20302C] hover:bg-[#9CC5B9] cursor-pointer shadow-2xs transition"
-          >
-            + เพิ่มบทเรียน (Add Lesson)
-          </button>
+          <PageHeaderButton onClick={onOpenAddLessonModal}>เพิ่มบทเรียน</PageHeaderButton>
         )}
       </div>
 

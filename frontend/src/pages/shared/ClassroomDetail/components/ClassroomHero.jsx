@@ -9,6 +9,9 @@ import {
   LuListTree,
   LuEye,
 } from "react-icons/lu";
+import CourseManageActions from "../../../../features/courses/components/CourseManageActions";
+import ReviewNote from "../../../../features/courses/components/ReviewNote";
+import { getStatusActions } from "../../../../features/courses/utils/courseStatus";
 
 /**
  * ClassroomHero Component
@@ -34,9 +37,13 @@ function ClassroomHero({
   onOpenLockModal,
   onOpenEditModal,
   onDeleteClassroom,
+  onCourseStatusAction,
+  isStatusBusy = false,
   lessonsCount,
   membersCount,
 }) {
+  // ปุ่มสถานะชุดเดียวกับการ์ด/ตาราง ("ไม่อนุมัติ" ต้องกรอกเหตุผล จึงทำจากหน้าตรวจคอร์สก่อนเผยแพร่)
+  const statusActions = getStatusActions(classroom).filter((a) => a.key !== "reject");
   const courseId = classroom.classroom_id || classroom.id;
   const [imageError, setImageError] = useState(false);
   const rawCover = classroom.cover_image || classroom.thumbnail_url;
@@ -55,11 +62,21 @@ function ClassroomHero({
         <div className="lg:col-span-8 space-y-4">
           {/* ป้ายสถานะ & หมวดหมู่ */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-lg bg-[#ABD1C6]/30 px-2.5 py-0.5 text-xs font-bold text-[#004643]">
-              {isIoT101
-                ? "IoT & Smart City"
-                : classroom.category_name || getCourseStatus(classroom.status).label}
-            </span>
+            {(isIoT101 || classroom.category_name) && (
+              <span className="rounded-lg bg-[#ABD1C6]/30 px-2.5 py-0.5 text-xs font-bold text-[#004643]">
+                {isIoT101 ? "IoT & Smart City" : classroom.category_name}
+              </span>
+            )}
+
+            {/* สถานะคอร์ส: แสดงให้ผู้ที่จัดการคอร์สได้ เหมือนการ์ดและตาราง */}
+            {isOwnerOrAdmin && !isIoT101 && (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-0.5 text-xs font-bold ${getCourseStatus(classroom.status).className}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${getCourseStatus(classroom.status).dot}`} />
+                {getCourseStatus(classroom.status).label}
+              </span>
+            )}
 
             <span className="rounded-lg bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
               {classroom.level || "ระดับ Beginner"}
@@ -226,23 +243,17 @@ function ClassroomHero({
                   <span>จัดการเนื้อหา</span>
                 </Link>
 
-                {/* ปุ่มแก้ไข และลบคอร์ส */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={onOpenEditModal}
-                    type="button"
-                    className="rounded-xl border border-gray-300 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 cursor-pointer"
-                  >
-                    แก้ไขคอร์ส
-                  </button>
-                  <button
-                    onClick={onDeleteClassroom}
-                    type="button"
-                    className="rounded-xl border border-red-200 py-2 text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer"
-                  >
-                    ลบคอร์ส
-                  </button>
-                </div>
+                {/* ปุ่มสถานะ / แก้ไข / ลบ ชุดเดียวกับการ์ดคอร์สทุกหน้า */}
+                <ReviewNote course={classroom} />
+                <CourseManageActions
+                  course={classroom}
+                  actions={statusActions}
+                  onStatusAction={(_, action) => onCourseStatusAction?.(action)}
+                  onEdit={onOpenEditModal ? () => onOpenEditModal() : undefined}
+                  onDelete={onDeleteClassroom ? () => onDeleteClassroom() : undefined}
+                  busy={isStatusBusy}
+                  variant="card"
+                />
               </div>
             )}
           </div>

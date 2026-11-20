@@ -193,10 +193,28 @@ function ClassroomDetail() {
         description: editDesc.trim() || null,
       });
       setIsEditModalOpen(false);
-      showNotice("success", "แก้ไขข้อมูลห้องเรียนสำเร็จ");
+      showNotice("success", "แก้ไขข้อมูลคอร์สสำเร็จ");
       loadClassroomData();
     } catch (err) {
       showNotice("error", err.response?.data?.message || "แก้ไขไม่สำเร็จ");
+    }
+  };
+
+  // ปุ่มสถานะคอร์ส (เผยแพร่ / ส่งตรวจ / อนุมัติ / ยกเลิกเผยแพร่ / เก็บถาวร / กู้คืน)
+  const [isStatusBusy, setIsStatusBusy] = useState(false);
+  const handleCourseStatusAction = async (action) => {
+    setIsStatusBusy(true);
+    try {
+      const res =
+        action.key === "approve"
+          ? await classroomService.reviewClassroom(classroomId, true)
+          : await classroomService.changeClassroomStatus(classroomId, action.status);
+      showNotice("success", res?.message || "บันทึกสถานะคอร์สแล้ว");
+      loadClassroomData();
+    } catch (err) {
+      showNotice("error", err.response?.data?.message || "เปลี่ยนสถานะคอร์สไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsStatusBusy(false);
     }
   };
 
@@ -402,6 +420,8 @@ function ClassroomDetail() {
         onOpenLockModal={openGuestLockModal}
         onOpenEditModal={() => setIsEditModalOpen(true)}
         onDeleteClassroom={handleDeleteClassroom}
+        onCourseStatusAction={handleCourseStatusAction}
+        isStatusBusy={isStatusBusy}
       />
 
       {/* กรณีเป็นคอร์ส IoT 101: แสดงโครงสร้าง Chapter 0-7 และ Episode ทั้งหมด */}

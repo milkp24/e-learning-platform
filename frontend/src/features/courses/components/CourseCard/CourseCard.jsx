@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { LuCheck, LuBookOpen, LuBookMarked, LuArrowRight } from "react-icons/lu";
 import Button from "../../../../components/common/Button";
 import { getCourseStatus } from "../../utils/courseStatus";
+import CourseManageActions from "../CourseManageActions";
+import ReviewNote from "../ReviewNote";
 
 // ======================================================
 // CourseCard Component (การ์ดแสดงคอร์สเรียน)
@@ -12,6 +14,8 @@ import { getCourseStatus } from "../../utils/courseStatus";
 // - Student: แสดงสถานะการลงทะเบียน, ปุ่ม "เข้าสู่ห้องเรียน" หรือ "ลงทะเบียนเรียน"
 // - Instructor: แสดงจำนวนนักเรียน, ปุ่ม "จัดการคอร์ส"
 // - Admin: แสดงสถานะคอร์ส, ปุ่มตรวจสอบรายละเอียด
+// ปุ่มจัดการ (สถานะ / แก้ไข / ลบ) แสดงเมื่อ canManage และส่ง handler มา
+// canManage ไม่ส่งมา = ใช้ตามบทบาทเดิม (instructor / admin) เพื่อให้หน้าแรกทำงานเหมือนเดิม
 
 function CourseCard({
   course,
@@ -21,6 +25,11 @@ function CourseCard({
   continueLink,
   manageLink,
   className = "",
+  canManage,
+  onEdit,
+  onStatusAction,
+  onDelete,
+  isBusy = false,
 }) {
   if (!course) return null;
 
@@ -39,7 +48,9 @@ function CourseCard({
   // ใช้ชื่อหมวดจริงจากฐานข้อมูล ถ้าไม่มีหมวดก็ไม่แสดงป้าย (เดิมใส่ "IoT & Smart City" ตายตัว)
   const category = course.category_name || course.category || null;
   const status = getCourseStatus(course.status);
-  const showStatus = role === "instructor" || role === "admin";
+  const manageable = canManage ?? (role === "instructor" || role === "admin");
+  const showStatus = manageable || role === "admin";
+  const hasManageActions = manageable && (onEdit || onStatusAction || onDelete);
 
   const [imageError, setImageError] = useState(false);
   const imageSrc = cover_image || thumbnail_url;
@@ -184,6 +195,8 @@ function CourseCard({
         )}
 
         {/* 3. ปุ่ม Action ด้านล่าง ปรับตามบทบาท (Role) */}
+        {/* ดันแถวปุ่มลงล่างสุด ให้ปุ่มของทุกการ์ดในแถวเดียวกันอยู่ระดับเดียวกัน */}
+        <div className="flex-1" aria-hidden="true" />
         <div className="mt-4 pt-3 border-t border-gray-100">
           {role === "guest" && (
             <Link
@@ -195,7 +208,18 @@ function CourseCard({
             </Link>
           )}
 
-          {role === "student" && (
+          {manageable ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button to={classroomPath} variant="outlineDark" size="sm" fullWidth>
+                ดูคอร์ส
+              </Button>
+              <Button to={targetManageLink} variant="primary" size="sm" fullWidth>
+                จัดการเนื้อหา
+              </Button>
+            </div>
+          ) : null}
+
+          {!manageable && role === "student" && (
             <div>
               {is_enrolled ? (
                 <Button
@@ -229,36 +253,25 @@ function CourseCard({
             </div>
           )}
 
-          {role === "instructor" && (
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                to={classroomPath}
-                variant="outlineDark"
-                size="sm"
-                fullWidth
-              >
-                ดูคอร์ส
-              </Button>
-              <Button
-                to={targetManageLink}
-                variant="primary"
-                size="sm"
-                fullWidth
-              >
-                จัดการเนื้อหา
-              </Button>
-            </div>
+          {/* ผู้สอน/แอดมินที่ไม่ได้เป็นเจ้าของคอร์สนี้: ดูได้อย่างเดียว */}
+          {!manageable && (role === "instructor" || role === "admin") && (
+            <Button to={classroomPath} variant="outlineDark" size="sm" fullWidth>
+              ดูคอร์ส
+            </Button>
           )}
 
-          {role === "admin" && (
-            <Button
-              to={classroomPath}
-              variant="outlineDark"
-              size="sm"
-              fullWidth
-            >
-              ตรวจสอบคอร์ส
-            </Button>
+          {hasManageActions && (
+            <div className="mt-2 space-y-2">
+              <ReviewNote course={course} />
+              <CourseManageActions
+                course={course}
+                onEdit={onEdit}
+                onStatusAction={onStatusAction}
+                onDelete={onDelete}
+                busy={isBusy}
+                variant="card"
+              />
+            </div>
           )}
         </div>
       </div>

@@ -110,6 +110,31 @@ def update_classroom(classroom_id):
         return jsonify({"error": "Internal Server Error", "message": "Failed to update classroom."}), 500
 
 
+@classrooms_bp.route("/<classroom_id>/status", methods=["POST"])
+@roles_required("instructor", "admin")
+def change_classroom_status(classroom_id):
+    """
+    เปลี่ยนสถานะคอร์ส: เผยแพร่ / ส่งตรวจ / ยกเลิกเผยแพร่ / เก็บถาวร / กู้คืน
+    ผลลัพธ์ขึ้นกับสิทธิ์ใน Permission Matrix (courses.publish, courses.unpublish)
+    """
+    user = get_current_user()
+    try:
+        return jsonify(ClassroomService.change_status(classroom_id, user, request.get_json(silent=True))), 200
+    except ClassroomServiceError as e:
+        return jsonify({"error": e.error, "message": e.message}), e.status_code
+
+
+@classrooms_bp.route("/<classroom_id>/review", methods=["POST"])
+@roles_required("admin")
+def review_classroom(classroom_id):
+    """อนุมัติ / ไม่อนุมัติการเผยแพร่คอร์สที่รอตรวจสอบ (หน้าตรวจคอร์สก่อนเผยแพร่)"""
+    user = get_current_user()
+    try:
+        return jsonify(ClassroomService.review_classroom(classroom_id, user, request.get_json(silent=True))), 200
+    except ClassroomServiceError as e:
+        return jsonify({"error": e.error, "message": e.message}), e.status_code
+
+
 @classrooms_bp.route("/<classroom_id>", methods=["DELETE"])
 @roles_required("instructor", "admin")
 def delete_classroom(classroom_id):

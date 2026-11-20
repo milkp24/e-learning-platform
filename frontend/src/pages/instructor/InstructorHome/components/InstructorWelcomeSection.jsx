@@ -1,4 +1,5 @@
-import Button from "../../../../components/common/Button";
+import { LuBookMarked } from "react-icons/lu";
+import PageHeaderButton from "../../../../components/layout/PageHeader/PageHeaderButton";
 
 function InstructorWelcomeSection({ displayName }) {
   return (
@@ -21,9 +22,9 @@ function InstructorWelcomeSection({ displayName }) {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <Button to="/classrooms?view=mine" variant="secondary" size="md">
+        <PageHeaderButton to="/classrooms?view=mine" icon={LuBookMarked}>
           คอร์สเรียนของฉัน
-        </Button>
+        </PageHeaderButton>
       </div>
     </div>
   );
