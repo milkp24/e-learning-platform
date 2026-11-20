@@ -3,6 +3,11 @@ import { Link } from "react-router-dom";
 import { LuRefreshCw, LuArrowRight, LuBookOpen } from "react-icons/lu";
 import classroomService from "../../../../services/classroomService";
 import CourseCard from "../../../../features/courses/components/CourseCard";
+import { isPublishedStatus } from "../../../../features/courses/utils/courseStatus";
+import useAuthStore from "../../../../store/useAuthStore";
+
+// หน้าแรกแสดงตัวอย่างคอร์ส 3 คอร์สล่าสุดที่เผยแพร่แล้ว ที่เหลือดูได้จาก "ดูคอร์สทั้งหมด"
+const SHOWCASE_LIMIT = 3;
 
 /**
  * RecommendedCoursesSection Component (Course Preview)
@@ -10,6 +15,9 @@ import CourseCard from "../../../../features/courses/components/CourseCard";
  * - Header: "เริ่มต้นการเรียนรู้จากคอร์สของเรา" (ไม่ใช้ "คอร์สล่าสุด" หรือ "Latest Courses")
  * - Subtitle: "เลือกคอร์สที่สนใจและเริ่มต้นพัฒนาทักษะผ่านการลงมือทำจริง"
  * - ข้อมูลจริงจาก Course API / Database 100% (ห้าม Mock หรือ Hardcode)
+ * - แสดงเฉพาะคอร์สที่เผยแพร่แล้ว 3 คอร์สล่าสุด (API เรียงจากใหม่ไปเก่าอยู่แล้ว)
+ *   แม้ผู้สอน/แอดมินที่ล็อกอินจะได้รายการที่มีฉบับร่างของตัวเองมาด้วย ก็ไม่แสดงที่หน้านี้
+ * - การ์ดปรับตามบทบาทของผู้ที่ล็อกอิน (Guest / ผู้เรียน / ผู้สอน / แอดมิน)
  * - Layout ปรับตามจำนวนคอร์สจริง:
  *   * 1 Course -> ขนาดพอดี (max-w-md) ไม่ขยายเต็มจอ เหลือพื้นที่หายใจอย่างตั้งใจ
  *   * 2 Courses -> จัด 2 Cards สมดุล
@@ -17,6 +25,14 @@ import CourseCard from "../../../../features/courses/components/CourseCard";
  *   * 0 Courses -> แสดง Empty State
  */
 function RecommendedCoursesSection() {
+  const { isAuthenticated, hasRole } = useAuthStore();
+  const role = !isAuthenticated
+    ? "guest"
+    : hasRole("admin") || hasRole("super_admin")
+    ? "admin"
+    : hasRole("instructor")
+    ? "instructor"
+    : "student";
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,7 +44,7 @@ function RecommendedCoursesSection() {
       const data = await classroomService.getClassrooms();
       const realClassrooms = data.courses || data.classrooms || [];
       // แสดงเฉพาะข้อมูลที่มีอยู่จริงในระบบเท่านั้น (ห้าม Mock เพิ่มเติม)
-      setCourses(realClassrooms);
+      setCourses(realClassrooms.filter((c) => isPublishedStatus(c.status)).slice(0, SHOWCASE_LIMIT));
     } catch (err) {
       console.error("Failed to fetch real courses from database:", err);
       setError("ไม่สามารถโหลดคอร์สได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง");
@@ -129,7 +145,8 @@ function RecommendedCoursesSection() {
               <div className="max-w-sm sm:max-w-md mx-auto lg:mx-0">
                 <CourseCard
                   course={courses[0]}
-                  role="guest"
+                  role={role}
+                  canManage={Boolean(courses[0].can_manage)}
                 />
               </div>
             ) : courses.length === 2 ? (
@@ -139,7 +156,8 @@ function RecommendedCoursesSection() {
                   <CourseCard
                     key={c.id || c.classroom_id || c.course_id}
                     course={c}
-                    role="guest"
+                    role={role}
+                    canManage={Boolean(c.can_manage)}
                   />
                 ))}
               </div>
@@ -150,7 +168,8 @@ function RecommendedCoursesSection() {
                   <CourseCard
                     key={c.id || c.classroom_id || c.course_id}
                     course={c}
-                    role="guest"
+                    role={role}
+                    canManage={Boolean(c.can_manage)}
                   />
                 ))}
               </div>
