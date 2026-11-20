@@ -4,6 +4,8 @@
  */
 function MembersSection({
   members,
+  totalCount = members.length,
+  isGuest = false,
   isOwnerOrAdmin,
   onOpenAddMemberModal,
   onRemoveMember,
@@ -25,7 +27,9 @@ function MembersSection({
 
       {members.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
-          ยังไม่มีสมาชิกในห้องเรียนนี้
+          {isGuest && totalCount > 0
+            ? `มีสมาชิก ${totalCount} คน เข้าสู่ระบบเพื่อดูรายชื่อ`
+            : "ยังไม่มีสมาชิกในห้องเรียนนี้"}
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">

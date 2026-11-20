@@ -262,6 +262,45 @@ class TestCourseStatusVisibility(unittest.TestCase):
         self.assertEqual(self._status(cid, "active", who="student").status_code, 403)
         self.assertEqual(self._status(cid, "active", who="admin").status_code, 200)
 
+    # ---------- ข้อ 30: จำนวนสมาชิกต้องตรงกันทุกหน้า ----------
+    def test_30_member_count_same_for_guest_and_members_list(self):
+        cid = self._published("members")
+        for who in ("student", "student2"):
+            res = self.client.post(f"{URL}/{cid}/join", headers=self.headers[who])
+            self.assertEqual(res.status_code, 201, res.get_json())
+
+        # Guest เปิดหน้าคอร์ส (ไม่มีสิทธิ์ดูรายชื่อ) ต้องเห็นจำนวนเท่ากับรายชื่อจริง
+        guest = self.client.get(f"{URL}/{cid}").get_json()["classroom"]
+        self.assertEqual(guest["member_count"], 2)
+
+        members = self.client.get(f"{URL}/{cid}/members", headers=self.headers["student"]).get_json()
+        self.assertEqual(members["member_count"], 2)
+        self.assertEqual(len(members["members"]), 2)
+
+        listed = {
+            c["classroom_id"]: c["member_count"]
+            for c in self.client.get(URL).get_json()["classrooms"]
+        }
+        self.assertEqual(listed[cid], 2)
+
+    def test_30_members_of_hidden_course_not_listed(self):
+        cid = self._create("hidden_members")["classroom_id"]
+        self.assertEqual(self.client.get(f"{URL}/{cid}/members", headers=self.headers["other"]).status_code, 404)
+        self.assertEqual(self.client.get(f"{URL}/{cid}/members", headers=self.headers["student"]).status_code, 404)
+        self.assertEqual(self.client.get(f"{URL}/{cid}/members", headers=self.headers["owner"]).status_code, 200)
+        self.assertEqual(self.client.get(f"{URL}/{cid}/members", headers=self.headers["admin"]).status_code, 200)
+
+
+    def test_enrolled_student_keeps_archived_course_in_my_courses(self):
+        """คอร์สที่ลงทะเบียนแล้วถูกเก็บถาวร ยังต้องอยู่ใน "คอร์สเรียนของฉัน" ของผู้เรียนเดิม"""
+        cid = self._published("archived_enrolled")
+        self.assertEqual(self.client.post(f"{URL}/{cid}/join", headers=self.headers["student"]).status_code, 201)
+        self.assertEqual(self._status(cid, "archived", who="admin").status_code, 200)
+
+        self.assertIn(cid, self._list_ids("student"))
+        self.assertNotIn(cid, self._list_ids("student2"))
+        self.assertNotIn(cid, self._list_ids())
+
 
 if __name__ == "__main__":
     unittest.main()

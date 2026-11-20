@@ -291,6 +291,8 @@ class ClassroomService:
         """
         แสดงรายการคอร์สเรียนทั้งหมดในระบบ (Course Catalog) (UAT-020, UAT-026)
         - Guest และผู้เรียน: เห็นเฉพาะคอร์สที่เผยแพร่แล้ว (active)
+          + คอร์สที่ตัวเองลงทะเบียนไว้ แม้ถูกยกเลิกเผยแพร่หรือเก็บถาวรภายหลัง
+          (ให้ "คอร์สเรียนของฉัน" ตรงกับ "คอร์สเรียนที่คุณกำลังเรียน" ในหน้าหลัก และตรงกับ can_view_classroom)
         - Instructor: เห็นคอร์สที่เผยแพร่แล้ว + คอร์สของตัวเองทุกสถานะ (ไม่เห็นฉบับร่างของคนอื่น)
         - Admin / Super Admin: เห็นทุกคอร์ส
         - status_filter (?status=draft ฯลฯ) ใช้กรองต่อจากสิทธิ์ข้างบน จึงขยายสิ่งที่มองเห็นไม่ได้
@@ -304,6 +306,11 @@ class ClassroomService:
             visible = Classroom.status == COURSE_STATUS_ACTIVE
             if current_user and current_user.has_role("instructor"):
                 visible = visible | (Classroom.instructor_id == current_user.user_id)
+            if current_user:
+                enrolled_ids = db.session.query(ClassroomMember.classroom_id).filter(
+                    ClassroomMember.user_id == current_user.user_id
+                )
+                visible = visible | Classroom.classroom_id.in_(enrolled_ids)
             query = query.filter(visible)
 
         if status_filter:
@@ -663,20 +670,25 @@ class ClassroomService:
     # =========================================================================
 
     @classmethod
-    def list_classroom_members(cls, classroom_id_raw: str) -> dict:
-        """แสดงรายชื่อสมาชิกที่ลงทะเบียนในคอร์สเรียน"""
+    def list_classroom_members(cls, classroom_id_raw: str, current_user: User | None = None) -> dict:
+        """แสดงรายชื่อสมาชิกที่ลงทะเบียนในคอร์สเรียน
+        - ผู้ที่มองไม่เห็นคอร์ส (เช่น คอร์สฉบับร่างของคนอื่น) จะได้ 404 เหมือน get_classroom
+        - member_count ใช้ค่าเดียวกับ Classroom.to_dict เพื่อให้ทุกหน้าแสดงตัวเลขตรงกัน (ข้อ 30)
+        """
         try:
             c_uuid = uuid.UUID(classroom_id_raw)
         except (ValueError, TypeError):
             raise ClassroomServiceError("Invalid classroom ID format.", 400, "Bad Request")
 
         classroom = db.session.get(Classroom, c_uuid)
-        if not classroom:
+        if not classroom or not cls.can_view_classroom(classroom, current_user):
             raise ClassroomServiceError("Classroom not found.", 404, "Not Found")
 
+        members = [m.to_dict() for m in classroom.members]
         return {
             "classroom_id": str(classroom.classroom_id),
-            "members": [m.to_dict() for m in classroom.members]
+            "member_count": len(members),
+            "members": members,
         }
 
     @classmethod

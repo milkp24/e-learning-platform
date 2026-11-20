@@ -329,6 +329,10 @@ function ClassroomDetail() {
     }
   };
 
+  // จำนวนสมาชิกใช้ member_count จาก Backend เป็นหลัก (ค่าเดียวกับการ์ด/ตารางคอร์ส)
+  // เพราะรายชื่อสมาชิกโหลดได้เฉพาะผู้ที่ล็อกอิน ถ้านับจาก members.length Guest จะเห็น 0 (ข้อ 30)
+  const membersCount = classroom?.member_count ?? members.length;
+
   const isEnrolled =
     isInstructorPreview ||
     !!classroom?.is_enrolled ||
@@ -415,7 +419,7 @@ function ClassroomDetail() {
         isInstructorPreview={isInstructorPreview}
         firstLessonId={lessons[0]?.lesson_id}
         lessonsCount={lessons.length}
-        membersCount={members.length}
+        membersCount={membersCount}
         onJoin={handleJoin}
         onOpenLockModal={openGuestLockModal}
         onOpenEditModal={() => setIsEditModalOpen(true)}
@@ -441,7 +445,7 @@ function ClassroomDetail() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             lessonsCount={lessons.length}
-            membersCount={members.length}
+            membersCount={membersCount}
           />
 
           {/* แท็บแสดงบทเรียน (Lessons Tab) */}
@@ -466,6 +470,8 @@ function ClassroomDetail() {
           {activeTab === "members" && (
             <MembersSection
               members={members}
+              totalCount={membersCount}
+              isGuest={isGuest}
               isOwnerOrAdmin={isOwnerOrAdmin}
               onOpenAddMemberModal={() => setIsAddMemberModalOpen(true)}
               onRemoveMember={handleRemoveMember}

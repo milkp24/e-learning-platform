@@ -162,7 +162,7 @@ def delete_classroom(classroom_id):
 def list_classroom_members(classroom_id):
     """แสดงรายชื่อสมาชิกที่ลงทะเบียนในคอร์สเรียน"""
     try:
-        result = ClassroomService.list_classroom_members(classroom_id)
+        result = ClassroomService.list_classroom_members(classroom_id, get_current_user())
         return jsonify(result), 200
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
