@@ -1,8 +1,6 @@
 ﻿import sys
 sys.stdout.reconfigure(encoding='utf-8')
 import json
-import urllib.request
-import urllib.error
 from app import create_app
 from app.extensions import db
 from app.models.user import User, UserProfile
@@ -19,8 +17,16 @@ def cleanup():
             db.session.commit()
             print("Cleaned up existing newuser@test.com")
 
+REGISTER_URL = "/api/v1/auth/register"
+
+
 def test_api_http():
-    print("\n--- Running Tests via HTTP Endpoint (http://127.0.0.1:5000/api/v1/auth/register) ---")
+    # ใช้ Flask test client แทนการยิงไปที่เซิร์ฟเวอร์ที่รันอยู่ (127.0.0.1:5000)
+    # เพื่อให้เทสต์ใช้ฐานข้อมูลทดสอบ และรันได้โดยไม่ต้องเปิดเซิร์ฟเวอร์
+    # ลบผู้ใช้จากการรันครั้งก่อนออกก่อน ไม่อย่างนั้นจะได้ 409 (อีเมลซ้ำ)
+    cleanup()
+    client = app.test_client()
+    print("\n--- Running Tests via Flask test client (POST /api/v1/auth/register) ---")
     
     # Test 1: สมัครสำเร็จ
     print("\n[Test 1] สมัครสำเร็จ (Registration Success):")
@@ -29,14 +35,9 @@ def test_api_http():
         "password": "Password123",
         "display_name": "New User"
     }
-    req = urllib.request.Request(
-        "http://127.0.0.1:5000/api/v1/auth/register",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"}
-    )
-    res = urllib.request.urlopen(req)
-    assert res.status == 201, f"Expected 201, got {res.status}"
-    body = json.loads(res.read().decode("utf-8"))
+    res = client.post(REGISTER_URL, json=payload)
+    assert res.status_code == 201, f"Expected 201, got {res.status_code}"
+    body = res.get_json()
     print("Response status: 201 Created")
     print("Response body:", json.dumps(body, ensure_ascii=False, indent=2))
     
@@ -51,38 +52,22 @@ def test_api_http():
 
     # Test 2: Email ซ้ำ
     print("\n[Test 2] Email ซ้ำ (Duplicate Email):")
-    req2 = urllib.request.Request(
-        "http://127.0.0.1:5000/api/v1/auth/register",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"}
-    )
-    try:
-        urllib.request.urlopen(req2)
-        assert False, "Should have failed with 409 Conflict"
-    except urllib.error.HTTPError as err:
-        assert err.code == 409, f"Expected 409, got {err.code}"
-        err_body = json.loads(err.read().decode("utf-8"))
-        print(f"Response status: {err.code} Conflict")
-        print("Response body:", json.dumps(err_body, ensure_ascii=False, indent=2))
-        assert "มีผู้ใช้งาน" in err_body.get("message", "") or "Conflict" in err_body.get("error", "")
-        print("-> Test 2 PASSED: Email ซ้ำได้ status 409 Conflict พร้อมข้อความแจ้งเตือน")
+    res2 = client.post(REGISTER_URL, json=payload)
+    assert res2.status_code == 409, f"Expected 409, got {res2.status_code}"
+    err_body = res2.get_json()
+    print(f"Response status: {res2.status_code} Conflict")
+    print("Response body:", json.dumps(err_body, ensure_ascii=False, indent=2))
+    assert "มีผู้ใช้งาน" in err_body.get("message", "") or "Conflict" in err_body.get("error", "")
+    print("-> Test 2 PASSED: Email ซ้ำได้ status 409 Conflict พร้อมข้อความแจ้งเตือน")
 
     # Test 3: ข้อมูลไม่ครบ (ไม่ส่ง password)
     print("\n[Test 3] ข้อมูลไม่ครบ (Missing Password):")
-    req3 = urllib.request.Request(
-        "http://127.0.0.1:5000/api/v1/auth/register",
-        data=json.dumps({"email": "another@test.com", "display_name": "No Password"}).encode("utf-8"),
-        headers={"Content-Type": "application/json"}
-    )
-    try:
-        urllib.request.urlopen(req3)
-        assert False, "Should have failed with 400 Bad Request"
-    except urllib.error.HTTPError as err:
-        assert err.code == 400, f"Expected 400, got {err.code}"
-        err_body = json.loads(err.read().decode("utf-8"))
-        print(f"Response status: {err.code} Bad Request")
-        print("Response body:", json.dumps(err_body, ensure_ascii=False, indent=2))
-        print("-> Test 3 PASSED: ข้อมูลไม่ครบได้ status 400 Bad Request")
+    res3 = client.post(REGISTER_URL, json={"email": "another@test.com", "display_name": "No Password"})
+    assert res3.status_code == 400, f"Expected 400, got {res3.status_code}"
+    err_body = res3.get_json()
+    print(f"Response status: {res3.status_code} Bad Request")
+    print("Response body:", json.dumps(err_body, ensure_ascii=False, indent=2))
+    print("-> Test 3 PASSED: ข้อมูลไม่ครบได้ status 400 Bad Request")
 
     # Test 4: ตรวจ Password ใน Database
     print("\n[Test 4] ตรวจสอบ Database & Password Hashing:")
@@ -99,7 +84,6 @@ def test_api_http():
         print("-> Test 4 PASSED: Password ถูกแฮชอย่างปลอดภัย และมี Role student ครบถ้วน")
 
 if __name__ == "__main__":
-    cleanup()
     test_api_http()
     print("\n=======================================================")
     print("ALL UAT-010 TESTS PASSED SUCCESSFULLY!")

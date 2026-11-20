@@ -27,7 +27,10 @@ def test_user_domain():
         admin = User.query.filter(User.roles.any(Role.role_name == "admin")).filter(
             ~User.roles.any(Role.role_name == "super_admin")
         ).first()
-        student = User.query.filter(User.roles.any(Role.role_name == "student")).first()
+        # ต้องเป็น student ที่มีโปรไฟล์ เพราะเทสต์นี้แก้ไขโปรไฟล์ (PUT /users/me/profile)
+        student = User.query.filter(
+            User.roles.any(Role.role_name == "student"), User.profile.has()
+        ).first()
 
         assert super_admin, "Super Admin user required in DB"
         assert admin, "Admin user required in DB"

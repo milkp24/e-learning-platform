@@ -13,6 +13,7 @@ from app import create_app
 from app.extensions import db
 from app.models.user import User
 from app.models.security import PasswordResetToken, RefreshToken
+from app.models.admin import AuditLog
 from app.services.email_service import send_reset_password_email
 
 
@@ -43,6 +44,14 @@ class TestForgotResetPassword(unittest.TestCase):
 
             # ล้าง Tokens เก่าของผู้ใช้นี้
             PasswordResetToken.query.filter_by(user_id=self.user_id).delete()
+
+            # ล้างประวัติการกรอกรหัสยืนยันผิดของ IP ที่ test client ใช้ (127.0.0.1)
+            # ระบบล็อก IP หลังกรอกผิด 5 ครั้งใน 15 นาที โดยนับจาก AuditLog
+            # ถ้าไม่ล้าง ความผิดพลาดที่ตั้งใจให้เกิดในเทสต์จะสะสมข้ามรอบ จนเทสต์ถัดไปโดนล็อก (429)
+            AuditLog.query.filter(
+                AuditLog.ip_address == "127.0.0.1",
+                AuditLog.action.in_(["PASSWORD_RESET_FAILED", "PASSWORD_RESET_LOCKED"]),
+            ).delete(synchronize_session=False)
             db.session.commit()
 
     def test_01_forgot_password_existing_user_token_creation(self):
