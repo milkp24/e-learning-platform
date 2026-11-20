@@ -86,6 +86,11 @@ class Classroom(db.Model):
         db.String(512),
         nullable=True
     )
+    # สถานะคอร์ส: ตอนนี้โค้ดใช้งานจริงแค่ "active"
+    # - Guest/Student เห็นเฉพาะคอร์สที่ status = "active" (classroom_service)
+    # - ลงทะเบียนเรียนได้เฉพาะคอร์สที่ "active"
+    # - ยังไม่มีสถานะ draft/published และตอนสร้างคอร์สยังไม่ตรวจว่าค่าที่ส่งมาถูกต้อง
+    #   (เกี่ยวกับรายการแก้ข้อ 1, 17, 19)
     status = db.Column(
         db.String(30),
         nullable=False,
@@ -262,6 +267,7 @@ class ClassroomMember(db.Model):
         nullable=False,
         index=True
     )
+    # สถานะการลงทะเบียน: ตอนนี้ใช้แค่ "enrolled"
     status = db.Column(
         db.String(30),
         nullable=False,
@@ -508,6 +514,8 @@ class Content(db.Model):
         nullable=True,
         index=True
     )
+    # ชนิดเนื้อหา: text, video, pdf, image, code, youtube
+    # (ค่าที่อนุญาตกำหนดใน utils/validators.py: ALLOWED_CONTENT_TYPES)
     content_type = db.Column(
         db.String(30),
         nullable=False

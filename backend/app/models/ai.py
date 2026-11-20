@@ -3,6 +3,14 @@ from datetime import datetime, timezone
 from sqlalchemy.dialects.postgresql import UUID
 from app.extensions import db
 
+# =====================================================================
+# ai.py: Models ระบบผู้ช่วย AI (Module 10)
+# - AIConversation: ห้องสนทนา 1 ห้องต่อผู้ใช้/หัวข้อ
+# - AIMessage: ข้อความในห้องสนทนา (role = ผู้ส่งข้อความ)
+# - AICodeRequest: คำขอให้ AI อธิบาย/วิเคราะห์โค้ด
+# - AIHint: คำใบ้ที่ AI สร้างให้แบบฝึกหัดหรือข้อสอบ
+# =====================================================================
+
 
 class AIConversation(db.Model):
     """AI Assistant conversation chat threads (Module 10.1)."""

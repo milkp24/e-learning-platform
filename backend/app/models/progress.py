@@ -4,6 +4,15 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import JSON
 from app.extensions import db
 
+# =====================================================================
+# progress.py: Models ความก้าวหน้าการเรียน (Module 4)
+# ลำดับความละเอียด: LearningProgress (ระดับคอร์ส) -> LessonProgress (ระดับบท)
+#                  -> EpisodeProgress (ระดับตอน / ตำแหน่งวิดีโอ)
+# - LearningActivity: เหตุการณ์การเรียนรายครั้ง ใช้คำนวณสถิติและ Streak
+# - Skill / UserSkill: ทักษะ และระดับทักษะที่ผู้เรียนปลดล็อกแล้ว
+# - LearningSummary: ตัวเลขสรุปการเรียนที่คำนวณไว้แล้ว
+# =====================================================================
+
 
 class LearningProgress(db.Model):
     """Course-level learning progress tracking (Module 4.1)."""
@@ -32,6 +41,7 @@ class LearningProgress(db.Model):
         nullable=False,
         default=0.00
     )
+    # ความคืบหน้าระดับคอร์ส: in_progress / completed
     status = db.Column(
         db.String(30),
         nullable=False,
@@ -88,6 +98,8 @@ class LessonProgress(db.Model):
         nullable=False,
         index=True
     )
+    # ความคืบหน้าระดับบท: in_progress / completed
+    # บทถัดไปจะปลดล็อกเมื่อบทก่อนหน้าทุกบทเป็น "completed" (lesson_service)
     status = db.Column(
         db.String(30),
         nullable=False,

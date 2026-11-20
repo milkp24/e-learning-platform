@@ -4,6 +4,17 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import JSON
 from app.extensions import db
 
+# =====================================================================
+# gamification.py: Models ระบบสร้างแรงจูงใจ (Module 5)
+# - UserXP: บันทึกการได้ XP แต่ละครั้ง (source_type = ได้มาจากกิจกรรมอะไร)
+# - Level / UserLevel: ระดับเลเวล และเลเวลปัจจุบันของผู้เรียน
+# - Badge / UserBadge: เหรียญรางวัล และเหรียญที่ผู้เรียนได้รับ
+# - UserStreak: จำนวนวันเรียนต่อเนื่อง
+# - Leaderboard: ตารางอันดับตามช่วงเวลา
+# - Mission / MissionProgress: ภารกิจ และความคืบหน้าของผู้เรียน
+# - Reward / UserReward: รางวัล และรางวัลที่ผู้เรียนได้รับ
+# =====================================================================
+
 
 class UserXP(db.Model):
     """User experience points transaction log (Module 5.1)."""
@@ -424,6 +435,7 @@ class MissionProgress(db.Model):
         nullable=False,
         default=0.00
     )
+    # สถานะภารกิจของผู้เรียน: in_progress / completed
     status = db.Column(
         db.String(30),
         nullable=False,

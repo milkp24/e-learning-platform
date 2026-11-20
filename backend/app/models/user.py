@@ -4,6 +4,15 @@ from sqlalchemy.dialects.postgresql import UUID
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
 
+# =====================================================================
+# user.py: Models บัญชีผู้ใช้ (Module 1)
+# - User: บัญชีสำหรับเข้าสู่ระบบ (อีเมล, รหัสผ่านแบบ hash, สถานะบัญชี)
+# - UserProfile: ข้อมูลส่วนตัวที่แสดงผล (ชื่อ, รูปโปรไฟล์ ฯลฯ)
+# - UserAccess: ประวัติการให้สิทธิ์ และวันหมดอายุสิทธิ์รายบุคคล
+# - Session: Session การใช้งานแยกตามอุปกรณ์
+# - PasswordHistory: รหัสผ่านเก่า (hash) ใช้กันการตั้งรหัสซ้ำ
+# =====================================================================
+
 
 class User(db.Model):
     """User account model for authentication and account status."""
@@ -25,6 +34,8 @@ class User(db.Model):
         db.String(255),
         nullable=False
     )
+    # สถานะบัญชี: active / inactive / suspended (ตรวจใน user_service)
+    # บัญชีที่ไม่ใช่ "active" เข้าสู่ระบบไม่ได้
     status = db.Column(
         db.String(30),
         nullable=False,

@@ -3,6 +3,16 @@ from datetime import datetime, timezone
 from sqlalchemy.dialects.postgresql import UUID
 from app.extensions import db
 
+# =====================================================================
+# school.py: Models โรงเรียน / สถาบัน (Module 1.10)
+# - School / SchoolSetting: ข้อมูลโรงเรียน และค่าตั้งค่าเฉพาะโรงเรียน
+# - SchoolUser: ผู้ใช้ที่สังกัดโรงเรียน
+# - Student / Instructor / InstructorSchool: โปรไฟล์ผู้เรียน, ผู้สอน และสังกัดของผู้สอน
+# - SchoolClassroom / ClassroomStudent: ห้องเรียนของโรงเรียน (เช่น ม.4/1) และนักเรียนในห้อง
+# หมายเหตุ: SchoolClassroom คือห้องเรียนของโรงเรียน คนละอย่างกับ Classroom ใน
+# classroom.py ซึ่งคือคอร์สเรียน (ตาราง courses)
+# =====================================================================
+
 
 class School(db.Model):
     """School institution entity for multi-tenancy (Module 1.10)."""
@@ -36,6 +46,7 @@ class School(db.Model):
         db.String(50),
         nullable=True
     )
+    # สถานะโรงเรียน: active / inactive
     status = db.Column(
         db.String(30),
         nullable=False,
@@ -344,6 +355,7 @@ class SchoolClassroom(db.Model):
         db.String(20),
         nullable=True
     )
+    # สถานะห้องเรียนของโรงเรียน: active / inactive
     status = db.Column(
         db.String(30),
         nullable=False,

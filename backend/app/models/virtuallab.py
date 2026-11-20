@@ -4,6 +4,14 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import JSON
 from app.extensions import db
 
+# =====================================================================
+# virtuallab.py: Models ห้องทดลองเสมือน (Module 7)
+# - VirtualLab: ห้องทดลอง 1 ห้อง
+# - LabProject / LabDevice: โปรเจกต์ของผู้เรียน และอุปกรณ์ที่วางบนวงจร
+# - Simulation: สถานะการจำลองการทำงาน
+# - LabAssignment: โจทย์การทดลองที่ผู้สอนมอบหมาย
+# =====================================================================
+
 
 class VirtualLab(db.Model):
     """Virtual laboratory environment (Module 7.1)."""

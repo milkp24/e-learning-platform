@@ -2,6 +2,13 @@ import uuid
 from sqlalchemy.dialects.postgresql import UUID
 from app.extensions import db
 
+# =====================================================================
+# role.py: Models บทบาทและสิทธิ์ (RBAC, Module 1.9)
+# - Role: บทบาท (ค่าเริ่มต้นดู DEFAULT_ROLES)
+# - Permission / RolePermission: สิทธิ์ย่อย และการผูกสิทธิ์กับบทบาท
+# - UserRole: การผูกผู้ใช้กับบทบาท (ผู้ใช้ 1 คนมีได้หลายบทบาท)
+# =====================================================================
+
 DEFAULT_ROLES = ["student", "instructor", "admin", "super_admin"]
 
 

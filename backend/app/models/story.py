@@ -4,6 +4,13 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import JSON
 from app.extensions import db
 
+# =====================================================================
+# story.py: Models โหมดเนื้อเรื่องและภารกิจ (Module 6)
+# - Story: เนื้อเรื่อง 1 เรื่อง
+# - StoryScene: ฉากและบทสนทนาในเรื่อง
+# - StoryProgress: ผู้เรียนเล่นถึงฉากไหนแล้ว
+# =====================================================================
+
 
 class Story(db.Model):
     """Narrative story theme and adventure line (Module 6.1)."""

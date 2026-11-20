@@ -4,6 +4,17 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import JSON
 from app.extensions import db
 
+# =====================================================================
+# admin.py: Models งานผู้ดูแลระบบ (Module 9)
+# - InteractiveComponent: คลัง component / template สื่อแบบโต้ตอบ
+# - Announcement: ประกาศทั้งระบบหรือเฉพาะโรงเรียน
+# - Notification: การแจ้งเตือนรายผู้ใช้ (read_at = เวลาที่อ่านแล้ว)
+# - Report: รายงานสถิติสรุปของแพลตฟอร์ม
+# - AuditLog: ประวัติการกระทำของผู้ดูแล (ใครทำอะไร กับอะไร เมื่อไร)
+# - SecurityLog: เหตุการณ์ด้านความปลอดภัย
+# - Backup: ประวัติการสำรองข้อมูล
+# =====================================================================
+
 
 class InteractiveComponent(db.Model):
     """Reusable interactive components, media templates and simulators (Module 9.5)."""

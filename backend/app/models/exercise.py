@@ -3,6 +3,13 @@ from datetime import datetime, timezone
 from sqlalchemy.dialects.postgresql import UUID
 from app.extensions import db
 
+# =====================================================================
+# exercise.py: Models แบบฝึกหัด (Module 8.1)
+# - Exercise / ExerciseAttempt: แบบฝึกหัดทั่วไป และการทำแต่ละครั้งของผู้เรียน
+# - CodingExercise / TestCase: โจทย์เขียนโค้ด และ test case ที่ใช้ตรวจ
+# - CodeSubmission / CodeExecution: โค้ดที่ผู้เรียนส่ง และผลการรันใน sandbox
+# =====================================================================
+
 
 class CodingExercise(db.Model):
     """Coding programming exercise prompt and environment specs (Module 8.1)."""
@@ -287,6 +294,7 @@ class Exercise(db.Model):
         nullable=True,
         default=None
     )
+    # สถานะแบบฝึกหัด: ผู้เรียนเห็นเฉพาะ "published"
     status = db.Column(
         db.String(30),
         nullable=False,
@@ -368,6 +376,7 @@ class ExerciseAttempt(db.Model):
         db.Numeric(5, 2),
         nullable=True
     )
+    # สถานะการทำแบบฝึกหัด: in_progress -> submitted / completed หรือ expired
     status = db.Column(
         db.String(30),
         nullable=False,

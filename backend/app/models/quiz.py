@@ -3,6 +3,13 @@ from datetime import datetime, timezone
 from sqlalchemy.dialects.postgresql import UUID
 from app.extensions import db
 
+# =====================================================================
+# quiz.py: Models แบบทดสอบ (Module 8.2 - 8.4)
+# - Question / QuestionOption: คลังคำถามกลาง และตัวเลือกของแต่ละข้อ
+# - Quiz / QuizQuestion / QuizCondition: ชุดข้อสอบ, คำถามในชุด (มีลำดับ), เงื่อนไขการสอบ
+# - QuizAttempt / QuizAnswer / QuizResult: การเข้าสอบแต่ละครั้ง, คำตอบรายข้อ, ผลคะแนน
+# =====================================================================
+
 
 class Quiz(db.Model):
     """Quiz assessment suite (Module 8.2)."""
@@ -113,6 +120,8 @@ class Question(db.Model):
         db.Text,
         nullable=False
     )
+    # ชนิดคำถามที่ quiz_service รองรับ: multiple_choice, true_false, image_choice,
+    # scenario, matching, ordering, simulation, architecture_builder
     question_type = db.Column(
         db.String(50),
         nullable=False,
@@ -309,6 +318,8 @@ class QuizAttempt(db.Model):
         db.DateTime(timezone=True),
         nullable=True
     )
+    # สถานะการสอบ: in_progress -> submitted / completed
+    # หรือ expired / time_expired เมื่อหมดเวลาหรือถูกแทนที่ด้วยการสอบรอบใหม่
     status = db.Column(
         db.String(30),
         nullable=False,

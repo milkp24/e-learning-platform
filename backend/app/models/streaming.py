@@ -4,6 +4,16 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import JSON
 from app.extensions import db
 
+# =====================================================================
+# streaming.py: Models การเรียนสด / Live Streaming (Module 3)
+# - OnlineRoom: ห้องสำหรับถ่ายทอดสด
+# - LiveSchedule: ตารางนัด Live ล่วงหน้า
+# - LiveSession: รอบการ Live ที่กำลังเกิดหรือจบแล้ว
+# - ChatMessage: ข้อความแชทระหว่าง Live
+# - LiveRecording: ไฟล์บันทึกย้อนหลัง
+# - LiveParticipant: ผู้เข้าร่วม และสิทธิ์เปิดไมค์
+# =====================================================================
+
 
 class OnlineRoom(db.Model):
     """WebRTC / Streaming virtual room container (Module 3.1)."""
