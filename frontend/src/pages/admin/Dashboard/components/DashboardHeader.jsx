@@ -1,5 +1,6 @@
 import { LuCalendar, LuRefreshCw, LuSearch } from "react-icons/lu";
 import useAuthStore from "../../../../store/useAuthStore";
+import { ProfileAvatarLink } from "../../../../components/common/UserAvatar";
 
 // Helper จัดรูปแบบวันปัจจุบันในรูปแบบภาษาไทย
 const getThaiTodayDateString = () => {
@@ -52,8 +53,10 @@ export default function DashboardHeader({
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-2 border-b border-[#E5E9E7]/60">
-      {/* Left: Greeting & Current Date */}
-      <div className="space-y-1">
+      {/* Left: รูปโปรไฟล์ (ข้อ 34) + Greeting & Current Date */}
+      <div className="flex items-center gap-4 min-w-0">
+      <ProfileAvatarLink user={user} name={displayName} />
+      <div className="space-y-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#26332F]">
             สวัสดี, {displayName} 👋
@@ -70,6 +73,7 @@ export default function DashboardHeader({
             ยินดีต้อนรับสู่ศูนย์ควบคุมระบบ E-learning Platform
           </span>
         </div>
+      </div>
       </div>
 
       {/* Right: Actions (Date Filter + Refresh) */}

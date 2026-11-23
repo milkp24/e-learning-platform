@@ -71,7 +71,7 @@ function StudentHome() {
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* 1. ส่วนต้อนรับผู้เรียน Welcome Section */}
-      <WelcomeSection displayName={displayName} />
+      <WelcomeSection displayName={displayName} user={user} />
 
       {/* 1.1 คอร์สเรียนที่ลงทะเบียนเรียนไว้ (Enrolled Courses & Continue Learning) */}
       <EnrolledCoursesSection

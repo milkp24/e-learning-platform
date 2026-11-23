@@ -9,6 +9,7 @@ import { resolveMediaUrl } from "../../../utils/mediaUrl";
 const SIZES = {
   sm: "h-7 w-7 text-xs rounded-lg",
   md: "h-9 w-9 text-sm rounded-xl",
+  xl: "h-16 w-16 text-2xl rounded-2xl",
   lg: "h-20 w-20 text-2xl rounded-full",
 };
 

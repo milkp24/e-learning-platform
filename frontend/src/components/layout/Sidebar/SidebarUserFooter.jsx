@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import UserAvatar from "../../common/UserAvatar";
 import {
   LuBot,
   LuCrown,
@@ -18,6 +19,7 @@ import {
 function SidebarUserFooter({
   effectiveRole,
   displayName = "ผู้ใช้งาน",
+  user = null,
   onClose,
   onLogout,
 }) {
@@ -80,9 +82,10 @@ function SidebarUserFooter({
   return (
     <div className="p-4 border-t border-[#E5E9E7] bg-[#FAFAFA] space-y-3">
       <div className="flex items-center gap-3 px-2 py-1.5 rounded-2xl bg-white border border-[#E5E9E7] shadow-2xs">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ABD1C6] text-[#26332F] font-bold text-sm">
-          <roleConfig.Icon className="h-5 w-5 text-[#004643]" aria-hidden="true" />
-        </div>
+        {/* ข้อ 34: รูปโปรไฟล์ (ไม่มีรูปแสดงอักษรแรกของชื่อ) กดเพื่อไปเปลี่ยนรูป */}
+        <Link to="/profile" onClick={handleLinkClick} title="เปลี่ยนรูปโปรไฟล์" className="shrink-0">
+          <UserAvatar user={user} name={displayName} size="md" className="h-10 w-10" />
+        </Link>
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-bold text-[#26332F]">
             {displayName}

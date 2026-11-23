@@ -175,6 +175,7 @@ function Sidebar({
       <SidebarUserFooter
         effectiveRole={effectiveRole}
         displayName={displayName}
+        user={user}
         onClose={onClose}
         onLogout={handleLogout}
       />

@@ -1,10 +1,14 @@
 import { LuBookMarked } from "react-icons/lu";
 import PageHeaderButton from "../../../../components/layout/PageHeader/PageHeaderButton";
+import { ProfileAvatarLink } from "../../../../components/common/UserAvatar";
 
-function InstructorWelcomeSection({ displayName }) {
+function InstructorWelcomeSection({ displayName, user }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-3xl border border-[#E5E9E7] bg-white p-6 sm:p-8 shadow-xs">
-      <div className="space-y-1.5">
+      <div className="flex items-center gap-4 min-w-0">
+      {/* ข้อ 34: รูปโปรไฟล์ด้านซ้าย กดเพื่อเพิ่ม/เปลี่ยนรูป */}
+      <ProfileAvatarLink user={user} name={displayName} />
+      <div className="space-y-1.5 min-w-0">
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-[#ABD1C6]/40 px-2.5 py-0.5 text-xs font-bold text-[#004643]">
             สตูดิโอผู้สอน
@@ -19,6 +23,7 @@ function InstructorWelcomeSection({ displayName }) {
         <p className="text-xs sm:text-sm text-[#6B7773]">
           ศูนย์จัดการคอร์สเรียน ติดตามผู้เรียน และปรับปรุงเนื้อหาบทเรียนของคุณ
         </p>
+      </div>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">

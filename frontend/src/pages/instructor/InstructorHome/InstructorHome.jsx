@@ -67,7 +67,7 @@ function InstructorHome() {
   return (
     <div className="space-y-10 animate-fadeIn">
       {/* 1. Welcome Section */}
-      <InstructorWelcomeSection displayName={displayName} />
+      <InstructorWelcomeSection displayName={displayName} user={user} />
 
       {/* Error alert if any */}
       {error && (
