@@ -99,6 +99,40 @@ def delete_lesson(lesson_id):
 
 
 # =====================================================================
+# 1.1 ความคืบหน้าการเรียน (ข้อ 24, 25) เฉพาะผู้เรียนที่ลงทะเบียนในคอร์ส
+# =====================================================================
+
+def _progress_response(call):
+    try:
+        return jsonify(call()), 200
+    except LessonServiceError as e:
+        return jsonify({"error": e.error, "message": e.message}), e.status_code
+
+
+@lessons_bp.route("/lessons/<lesson_id>/progress/start", methods=["POST"])
+@jwt_required()
+def start_lesson(lesson_id):
+    """เปิดบทเรียน: สถานะ "ยังไม่เรียน" -> "กำลังเรียน" """
+    return _progress_response(lambda: LessonService.start_lesson(lesson_id, get_current_user()))
+
+
+@lessons_bp.route("/lessons/<lesson_id>/complete", methods=["POST"])
+@jwt_required()
+def complete_lesson(lesson_id):
+    """ปุ่ม "เรียนจบแล้ว" (ต้องดูวิดีโอทุกคลิปในบทถึง 90% ก่อน)"""
+    return _progress_response(lambda: LessonService.complete_lesson(lesson_id, get_current_user()))
+
+
+@lessons_bp.route("/contents/<content_id>/progress", methods=["PUT"])
+@jwt_required()
+def save_video_progress(content_id):
+    """บันทึกตำแหน่งการดูวิดีโอ {position_seconds, duration_seconds}"""
+    return _progress_response(
+        lambda: LessonService.save_video_progress(content_id, get_current_user(), request.get_json(silent=True))
+    )
+
+
+# =====================================================================
 # 2. Episode Endpoints (ตอนย่อยใน Chapter)
 # =====================================================================
 

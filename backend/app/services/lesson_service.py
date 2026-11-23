@@ -1,15 +1,26 @@
 import uuid
-from sqlalchemy import func
+from datetime import datetime, timezone
+from sqlalchemy import func, or_
 from app.extensions import db
 from app.models.user import User
-from app.models.classroom import Classroom, Lesson, Episode, Content
-from app.models.progress import LessonProgress
+from app.models.classroom import Classroom, Lesson, Episode, Content, Journal
+from app.models.progress import LessonProgress, ContentProgress
 from app.services.classroom_service import ClassroomService
 from app.utils.validators import (
     validate_title,
     validate_content_type,
     sanitize_content_by_type,
 )
+
+
+# ข้อ 24: ต้องดูวิดีโอทุกคลิปในบทถึงเปอร์เซ็นต์นี้ก่อน จึงกด "เรียนจบแล้ว" ได้
+VIDEO_COMPLETE_PERCENT = 90
+VIDEO_CONTENT_TYPES = ("video", "youtube")
+
+# สถานะการเรียนต่อบทที่ส่งให้หน้าเว็บ (ข้อ 24)
+PROGRESS_NOT_STARTED = "not_started"
+PROGRESS_IN_PROGRESS = "in_progress"
+PROGRESS_COMPLETED = "completed"
 
 
 class LessonServiceError(Exception):
@@ -172,13 +183,24 @@ class LessonService:
         lessons = Lesson.query.filter_by(classroom_id=c_uuid).order_by(Lesson.sequence_no.asc(), Lesson.lesson_id.asc()).all()
 
         completed_lesson_ids = set()
+        progress_by_lesson = {}
+        note_counts = {}
+        lesson_ids = [l.lesson_id for l in lessons]
         if user and not is_manager:
-            rows = db.session.query(LessonProgress.lesson_id).filter(
+            rows = db.session.query(LessonProgress.lesson_id, LessonProgress.status).filter(
                 LessonProgress.user_id == user.user_id,
-                LessonProgress.lesson_id.in_([l.lesson_id for l in lessons]),
-                LessonProgress.status == "completed"
+                LessonProgress.lesson_id.in_(lesson_ids),
             ).all()
-            completed_lesson_ids = {r[0] for r in rows}
+            progress_by_lesson = {r[0]: r[1] for r in rows}
+            completed_lesson_ids = {lid for lid, st in progress_by_lesson.items() if st == "completed"}
+        if user and lesson_ids:
+            # ข้อ 27: จำนวนบันทึกการเรียนรู้ของผู้ใช้คนนี้ในแต่ละบท (เห็นเฉพาะของตัวเอง)
+            note_counts = dict(
+                db.session.query(Journal.lesson_id, func.count(Journal.journal_id))
+                .filter(Journal.user_id == user.user_id, Journal.lesson_id.in_(lesson_ids))
+                .group_by(Journal.lesson_id)
+                .all()
+            )
 
         formatted_lessons = []
         all_prev_completed = True
@@ -204,6 +226,10 @@ class LessonService:
             l_dict["is_unlocked"] = is_unlocked
             l_dict["is_locked"] = not is_unlocked
             l_dict["lock_reason"] = lock_reason
+            l_dict["progress_status"] = (
+                None if is_manager or not user else cls._status_label(progress_by_lesson.get(l.lesson_id))
+            )
+            l_dict["note_count"] = int(note_counts.get(l.lesson_id, 0))
             if not is_unlocked:
                 l_dict["contents"] = []
                 for ep in l_dict.get("episodes", []):
@@ -311,6 +337,11 @@ class LessonService:
                 ep["is_unlocked"] = True
                 ep["is_locked"] = False
 
+        lesson_dict["progress"] = cls.build_lesson_progress(lesson, user)
+        lesson_dict["note_count"] = (
+            Journal.query.filter_by(user_id=user.user_id, lesson_id=lesson.lesson_id).count() if user else 0
+        )
+
         return {
             "lesson": lesson_dict,
             "chapter": lesson_dict,
@@ -319,6 +350,184 @@ class LessonService:
             "is_locked": not is_unlocked,
             "lock_reason": lock_reason
         }
+
+    # =========================================================================
+    # ความคืบหน้าการเรียน (ข้อ 24 ปุ่ม "เรียนจบแล้ว", ข้อ 25 ความคืบหน้าวิดีโอ)
+    # ติดตามเฉพาะผู้เรียนที่ลงทะเบียนในคอร์ส (เจ้าของคอร์สและ Admin ไม่ถูกนับ)
+    # =========================================================================
+
+    @staticmethod
+    def _status_label(raw_status: str | None) -> str:
+        if raw_status == "completed":
+            return PROGRESS_COMPLETED
+        if raw_status:
+            return PROGRESS_IN_PROGRESS
+        return PROGRESS_NOT_STARTED
+
+    @classmethod
+    def is_progress_tracked(cls, classroom: Classroom | None, user: User | None) -> bool:
+        return bool(
+            classroom and user and classroom.has_member(user.user_id)
+            and not cls.can_manage_classroom(classroom, user)
+        )
+
+    @staticmethod
+    def get_lesson_videos(lesson: Lesson) -> list:
+        """วิดีโอทุกคลิปในบท (ทั้งที่อยู่ในบทตรง และอยู่ในตอนย่อยของบท) เรียงตามลำดับ"""
+        episode_ids = [e.episode_id for e in lesson.episodes]
+        conditions = [Content.lesson_id == lesson.lesson_id]
+        if episode_ids:
+            conditions.append(Content.episode_id.in_(episode_ids))
+        return (
+            Content.query.filter(or_(*conditions), Content.content_type.in_(VIDEO_CONTENT_TYPES))
+            .order_by(Content.sequence_no.asc())
+            .all()
+        )
+
+    @classmethod
+    def build_lesson_progress(cls, lesson: Lesson, user: User | None) -> dict | None:
+        """สรุปความคืบหน้าของผู้เรียนในบทนี้ (None ถ้าไม่ใช่ผู้เรียนที่ถูกติดตาม)"""
+        classroom = cls.get_classroom_from_lesson(lesson)
+        if not cls.is_progress_tracked(classroom, user):
+            return None
+
+        row = LessonProgress.query.filter_by(user_id=user.user_id, lesson_id=lesson.lesson_id).first()
+        videos = cls.get_lesson_videos(lesson)
+        watched = {}
+        if videos:
+            watched = {
+                p.content_id: p
+                for p in ContentProgress.query.filter(
+                    ContentProgress.user_id == user.user_id,
+                    ContentProgress.content_id.in_([v.content_id for v in videos]),
+                ).all()
+            }
+        video_items = []
+        for v in videos:
+            prog = watched.get(v.content_id)
+            video_items.append({
+                "content_id": str(v.content_id),
+                "caption": v.caption,
+                "percent": prog.max_percent if prog else 0,
+                "position_seconds": prog.position_seconds if prog else 0,
+            })
+        remaining = [v for v in video_items if v["percent"] < VIDEO_COMPLETE_PERCENT]
+        status = cls._status_label(row.status if row else None)
+        return {
+            "status": status,
+            "completed_at": row.completed_at.isoformat() if row and row.completed_at else None,
+            "required_percent": VIDEO_COMPLETE_PERCENT,
+            "videos": video_items,
+            "videos_remaining": len(remaining),
+            "can_complete": status != PROGRESS_COMPLETED and not remaining,
+        }
+
+    @classmethod
+    def _get_tracked_lesson(cls, lesson_id_raw: str, user: User | None) -> Lesson:
+        if not user:
+            raise LessonServiceError("กรุณาเข้าสู่ระบบก่อน", 401, "Unauthorized")
+        try:
+            l_uuid = uuid.UUID(lesson_id_raw)
+        except (ValueError, TypeError):
+            raise LessonServiceError("Invalid lesson ID format.", 400, "Bad Request")
+        lesson = db.session.get(Lesson, l_uuid)
+        if not lesson:
+            raise LessonServiceError("Lesson not found.", 404, "Not Found")
+        classroom = cls.get_classroom_from_lesson(lesson)
+        cls.ensure_course_visible(classroom, user)
+        if not cls.is_progress_tracked(classroom, user):
+            raise LessonServiceError("บันทึกความคืบหน้าได้เฉพาะผู้เรียนที่ลงทะเบียนในคอร์สนี้", 403, "Forbidden")
+        unlocked, _ = cls.is_lesson_unlocked_for_user(lesson, user)
+        if not unlocked:
+            raise LessonServiceError("บทนี้ยังล็อกอยู่ กรุณาเรียนบทก่อนหน้าให้จบก่อน", 403, "Forbidden")
+        return lesson
+
+    @staticmethod
+    def _ensure_started(lesson: Lesson, user: User) -> LessonProgress:
+        row = LessonProgress.query.filter_by(user_id=user.user_id, lesson_id=lesson.lesson_id).first()
+        if not row:
+            row = LessonProgress(user_id=user.user_id, lesson_id=lesson.lesson_id, status="in_progress")
+            db.session.add(row)
+        return row
+
+    @classmethod
+    def start_lesson(cls, lesson_id_raw: str, user: User | None) -> dict:
+        """เปิดบทเรียนครั้งแรก: สถานะเปลี่ยนจาก "ยังไม่เรียน" เป็น "กำลังเรียน" """
+        lesson = cls._get_tracked_lesson(lesson_id_raw, user)
+        cls._ensure_started(lesson, user)
+        db.session.commit()
+        return {"progress": cls.build_lesson_progress(lesson, user)}
+
+    @classmethod
+    def complete_lesson(cls, lesson_id_raw: str, user: User | None) -> dict:
+        """ปุ่ม "เรียนจบแล้ว" (ข้อ 24): ต้องดูวิดีโอทุกคลิปในบทถึง VIDEO_COMPLETE_PERCENT ก่อน"""
+        lesson = cls._get_tracked_lesson(lesson_id_raw, user)
+        progress = cls.build_lesson_progress(lesson, user)
+        if progress["status"] != PROGRESS_COMPLETED:
+            if progress["videos_remaining"]:
+                raise LessonServiceError(
+                    f"กรุณาดูวิดีโอให้ถึง {VIDEO_COMPLETE_PERCENT}% ก่อน "
+                    f"(เหลืออีก {progress['videos_remaining']} คลิป) แล้วจึงกดเรียนจบ",
+                    400,
+                    "Validation Error",
+                )
+            row = cls._ensure_started(lesson, user)
+            row.status = "completed"
+            row.completed_at = datetime.now(timezone.utc)
+            db.session.commit()
+
+        classroom = cls.get_classroom_from_lesson(lesson)
+        ordered = (
+            Lesson.query.filter_by(classroom_id=classroom.classroom_id)
+            .order_by(Lesson.sequence_no.asc(), Lesson.lesson_id.asc())
+            .all()
+        )
+        ids = [l.lesson_id for l in ordered]
+        idx = ids.index(lesson.lesson_id) if lesson.lesson_id in ids else -1
+        next_lesson = ordered[idx + 1] if 0 <= idx < len(ordered) - 1 else None
+        return {
+            "message": "บันทึกว่าเรียนจบบทนี้แล้ว",
+            "progress": cls.build_lesson_progress(lesson, user),
+            "next_lesson_id": str(next_lesson.lesson_id) if next_lesson else None,
+        }
+
+    @classmethod
+    def save_video_progress(cls, content_id_raw: str, user: User | None, data: dict | None) -> dict:
+        """ข้อ 25: บันทึกตำแหน่งการดูวิดีโอ เก็บเปอร์เซ็นต์สูงสุดที่เคยดูถึง"""
+        if not user:
+            raise LessonServiceError("กรุณาเข้าสู่ระบบก่อน", 401, "Unauthorized")
+        try:
+            c_uuid = uuid.UUID(content_id_raw)
+        except (ValueError, TypeError):
+            raise LessonServiceError("Invalid content ID format.", 400, "Bad Request")
+        content = db.session.get(Content, c_uuid)
+        if not content or content.content_type not in VIDEO_CONTENT_TYPES:
+            raise LessonServiceError("ไม่พบวิดีโอนี้", 404, "Not Found")
+        lesson = content.lesson or (content.episode.lesson if content.episode else None)
+        if not lesson:
+            raise LessonServiceError("ไม่พบวิดีโอนี้", 404, "Not Found")
+        cls._get_tracked_lesson(str(lesson.lesson_id), user)
+
+        data = data or {}
+        try:
+            position = max(0.0, float(data.get("position_seconds") or 0))
+            duration = float(data.get("duration_seconds") or 0)
+        except (ValueError, TypeError):
+            raise LessonServiceError("ข้อมูลเวลาวิดีโอไม่ถูกต้อง", 400, "Validation Error")
+        if duration <= 0:
+            raise LessonServiceError("ไม่ทราบความยาววิดีโอ", 400, "Validation Error")
+        percent = min(100, int(round(position / duration * 100)))
+
+        prog = ContentProgress.query.filter_by(user_id=user.user_id, content_id=content.content_id).first()
+        if not prog:
+            prog = ContentProgress(user_id=user.user_id, content_id=content.content_id, max_percent=0)
+            db.session.add(prog)
+        prog.position_seconds = min(position, duration)
+        prog.duration_seconds = duration
+        prog.max_percent = max(prog.max_percent or 0, percent)
+        cls._ensure_started(lesson, user)
+        db.session.commit()
+        return {"video": prog.to_dict(), "progress": cls.build_lesson_progress(lesson, user)}
 
     @classmethod
     def update_lesson(cls, lesson_id_raw: str, user: User | None, data: dict) -> dict:

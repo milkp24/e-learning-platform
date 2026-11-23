@@ -4,6 +4,7 @@ import SettingsHeader from "./components/SettingsHeader";
 import SettingsFeedback from "./components/SettingsFeedback";
 import TimeoutConfigForm from "./components/TimeoutConfigForm";
 import SecurityPolicyInfoCard from "./components/SecurityPolicyInfoCard";
+import { notify } from "../../../store/useToastStore";
 
 /**
  * Settings Page Component (Admin System Settings)
@@ -58,8 +59,7 @@ function Settings() {
         warning_countdown_seconds: String(warningCountdown),
       });
 
-      setMessage("บันทึกการตั้งค่าระบบเรียบร้อยแล้ว การตั้งค่าใหม่จะมีผลทันที");
-      setTimeout(() => setMessage(""), 4000);
+      notify.success("บันทึกการตั้งค่าระบบเรียบร้อยแล้ว การตั้งค่าใหม่จะมีผลทันที");
     } catch (err) {
       setError(err.response?.data?.message || "บันทึกการตั้งค่าไม่สำเร็จ");
     } finally {

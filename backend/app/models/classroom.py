@@ -29,6 +29,18 @@ COURSE_STATUSES = (
     COURSE_STATUS_ACTIVE,
     COURSE_STATUS_ARCHIVED,
 )
+# ---------------------------------------------------------------------
+# การมองเห็นคอร์ส (Classroom.visibility) ข้อ 1 ใช้กับคอร์สที่เผยแพร่แล้ว (active)
+#   public  = สาธารณะ     ทุกคนเห็นในรายการ รวม Guest
+#   members = จำกัดสิทธิ์  เห็นและลงทะเบียนได้เฉพาะผู้ที่เข้าสู่ระบบแล้ว (Guest ไม่เห็น)
+#   hidden  = ซ่อน        ไม่ขึ้นในรายการของใคร เข้าได้เฉพาะผู้เรียนที่ลงทะเบียน/ถูกเพิ่มไว้
+# เจ้าของคอร์สและ Admin เห็นทุกคอร์สเสมอ (กติกาอยู่ที่ ClassroomService.can_view_classroom)
+# ---------------------------------------------------------------------
+COURSE_VISIBILITY_PUBLIC = "public"
+COURSE_VISIBILITY_MEMBERS = "members"
+COURSE_VISIBILITY_HIDDEN = "hidden"
+COURSE_VISIBILITIES = (COURSE_VISIBILITY_PUBLIC, COURSE_VISIBILITY_MEMBERS, COURSE_VISIBILITY_HIDDEN)
+
 # ชื่อเรียกเดิมที่เคยใช้ในโค้ด จะถูกแปลงเป็นค่ามาตรฐานก่อนบันทึก
 # (ข้อมูลเก่าในฐานข้อมูลแปลงด้วย migration c3a1d5e7f902)
 COURSE_STATUS_ALIASES = {
@@ -127,6 +139,13 @@ class Classroom(db.Model):
         db.Text,
         nullable=True
     )
+    # การมองเห็น: ค่าที่ใช้ได้ดู COURSE_VISIBILITIES ด้านบนของไฟล์
+    visibility = db.Column(
+        db.String(20),
+        nullable=False,
+        default=COURSE_VISIBILITY_PUBLIC,
+        server_default=COURSE_VISIBILITY_PUBLIC,
+    )
     created_at = db.Column(
         db.DateTime(timezone=True),
         nullable=False,
@@ -196,6 +215,7 @@ class Classroom(db.Model):
             "thumbnail_url": self.thumbnail_url,
             "status": self.status,
             "review_note": self.review_note,
+            "visibility": self.visibility or COURSE_VISIBILITY_PUBLIC,
             "member_count": len(self.members),
             "lesson_count": len(self.lessons),
             "chapter_count": len(self.chapters) if self.chapters else len(self.lessons),
@@ -614,6 +634,7 @@ class Journal(db.Model):
     - user_id: ผูกกับ User แบบ ON DELETE CASCADE (หากผู้ใช้ถูกลบ บันทึกจะถูกลบตาม)
     - classroom_id: ผูกกับ Course แบบ ON DELETE SET NULL (หากคอร์สถูกลบ บันทึกของผู้เรียนจะไม่สูญหาย)
     - episode_id: ผูกกับ Episode แบบ ON DELETE SET NULL (หาก Episode ถูกลบ บันทึกของผู้เรียนจะไม่สูญหาย)
+    - lesson_id: ผูกกับบทเรียน (ข้อ 27) ON DELETE SET NULL หน้าคอร์สใช้แสดงว่าบทไหนมีบันทึก
     """
 
     __tablename__ = "journals"
@@ -638,6 +659,12 @@ class Journal(db.Model):
     episode_id = db.Column(
         UUID(as_uuid=True),
         db.ForeignKey("episodes.episode_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
+    lesson_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("lessons.lesson_id", ondelete="SET NULL"),
         nullable=True,
         index=True
     )
@@ -674,6 +701,10 @@ class Journal(db.Model):
         "Episode",
         backref=db.backref("journals", lazy="dynamic")
     )
+    lesson = db.relationship(
+        "Lesson",
+        backref=db.backref("journals", lazy="dynamic")
+    )
 
     def to_dict(self) -> dict:
         """แปลงข้อมูล Journal เป็น Dictionary"""
@@ -685,6 +716,8 @@ class Journal(db.Model):
             "course_title": self.classroom.title if self.classroom else None,
             "episode_id": str(self.episode_id) if self.episode_id else None,
             "episode_title": self.episode.title if self.episode else None,
+            "lesson_id": str(self.lesson_id) if self.lesson_id else None,
+            "lesson_title": self.lesson.title if self.lesson else None,
             "title": self.title,
             "content": self.content,
             "created_at": self.created_at.isoformat() if self.created_at else None,

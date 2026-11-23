@@ -10,6 +10,21 @@ from app.models.gamification import (
     UserXP, UserLevel, UserStreak, UserBadge, Mission, MissionProgress
 )
 from app.utils.validators import validate_email, validate_display_name, validate_password
+from app.services.media_service import MediaService, MediaServiceError
+
+
+def _clean_profile_image(value, current):
+    """ข้อ 34: รูปโปรไฟล์เก็บเป็นที่อยู่ไฟล์/ลิงก์ ไม่รับ Base64
+    ค่าที่ไม่เปลี่ยนจากเดิมไม่ต้องตรวจ (บัญชีเก่าที่ยังเป็น Base64 จะได้บันทึกชื่อได้)"""
+    if value is not None and not isinstance(value, str):
+        raise UserServiceError("รูปโปรไฟล์ไม่ถูกต้อง", 400, "Validation Error")
+    stripped = value.strip() if isinstance(value, str) and value.strip() else None
+    if stripped == current:
+        return current
+    try:
+        return MediaService.clean_image_url(stripped, "รูปโปรไฟล์")
+    except MediaServiceError as e:
+        raise UserServiceError(e.message, 400, "Validation Error")
 
 
 class UserServiceError(Exception):
@@ -75,10 +90,9 @@ class UserService:
             current_user.profile.display_name = new_name.strip()
 
         if "profile_image" in data:
-            new_image = data.get("profile_image")
-            if new_image is not None and not isinstance(new_image, str):
-                raise UserServiceError("profile_image must be a string or null.", 400, "Validation Error")
-            current_user.profile.profile_image = new_image
+            current_user.profile.profile_image = _clean_profile_image(
+                data.get("profile_image"), current_user.profile.profile_image
+            )
 
         try:
             db.session.commit()
@@ -613,10 +627,7 @@ class UserService:
                 changed_fields.append("institution_email")
 
         if "profile_image" in data:
-            new_img = data["profile_image"]
-            if new_img is not None and not isinstance(new_img, str):
-                raise UserServiceError("profile_image must be a string or null.", 400, "Validation Error")
-            clean_img = new_img.strip() if isinstance(new_img, str) and new_img.strip() else None
+            clean_img = _clean_profile_image(data["profile_image"], profile.profile_image)
             if clean_img != profile.profile_image:
                 profile.profile_image = clean_img
                 changed_fields.append("profile_image")

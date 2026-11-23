@@ -20,6 +20,7 @@ import StaffPermissionModal from "./components/StaffPermissionModal";
 import AuditLogModal from "../../../features/permissions/components/AuditLogModal/AuditLogModal";
 import useUrlParam from "../../../hooks/useUrlParam";
 import { confirmDelete } from "../../../store/useConfirmStore";
+import { notify } from "../../../store/useToastStore";
 
 export default function Staff() {
   const {
@@ -64,10 +65,9 @@ export default function Staff() {
   const [isAuditOpen, setIsAuditOpen] = useState(false);
 
   // Notification Banner
-  const [notice, setNotice] = useState(null);
+  // แจ้งผลการทำงานผ่านแถบมุมขวาบนกลางของระบบ
   const showNotice = (text, type = "success") => {
-    setNotice({ text, type });
-    setTimeout(() => setNotice(null), 3500);
+    notify.show(type, text);
   };
 
   // Filtered staff
@@ -168,25 +168,6 @@ export default function Staff() {
         </div>
       </div>
 
-      {/* Notice Banner */}
-      {notice && (
-        <div
-          className={`rounded-2xl p-4 text-xs sm:text-sm font-semibold transition flex items-center justify-between shadow-2xs ${
-            notice.type === "error"
-              ? "bg-rose-50 text-rose-800 border border-rose-200"
-              : "bg-[#ABD1C6]/25 text-[#004643] border border-[#ABD1C6]"
-          }`}
-        >
-          <span>{notice.text}</span>
-          <button
-            type="button"
-            onClick={() => setNotice(null)}
-            className="text-slate-500 hover:text-black cursor-pointer"
-          >
-            <LuX className="h-4 w-4" />
-          </button>
-        </div>
-      )}
 
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

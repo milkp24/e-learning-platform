@@ -1,7 +1,8 @@
 import uuid
 from app.extensions import db
 from app.models.user import User
-from app.models.classroom import Classroom, Episode, Journal
+from sqlalchemy import or_
+from app.models.classroom import Classroom, Episode, Journal, Lesson
 from app.utils.validators import validate_title
 
 
@@ -20,12 +21,32 @@ class JournalService:
     Handles journal lifecycle, student ownership isolation, admin oversight, and database transactions.
     """
 
+    @staticmethod
+    def resolve_lesson(lesson_id, classroom_uuid):
+        """ข้อ 27: ตรวจบทเรียนที่จะผูกกับบันทึก คืน (lesson_uuid, classroom_uuid)
+        - บทเรียนต้องมีอยู่จริง และอยู่ในคอร์สที่เลือก (ถ้าเลือกคอร์สไว้)
+        - เลือกแค่บทเรียน ระบบจะผูกคอร์สของบทนั้นให้อัตโนมัติ
+        """
+        if not lesson_id:
+            return None, classroom_uuid
+        try:
+            lesson = db.session.get(Lesson, uuid.UUID(str(lesson_id)))
+        except (ValueError, TypeError):
+            lesson = None
+        if not lesson:
+            raise JournalServiceError("ไม่พบบทเรียนที่เลือก", 400, "Validation Error")
+        if classroom_uuid and lesson.classroom_id != classroom_uuid:
+            raise JournalServiceError("บทเรียนที่เลือกไม่ได้อยู่ในคอร์สนี้", 400, "Validation Error")
+        return lesson.lesson_id, lesson.classroom_id
+
     @classmethod
     def list_journals(
         cls,
         user: User | None,
         classroom_id: str | None = None,
-        episode_id: str | None = None
+        episode_id: str | None = None,
+        lesson_id: str | None = None,
+        q: str | None = None,
     ) -> dict:
         """
         แสดงรายการบันทึกการเรียนรู้ทั้งหมดของผู้ใช้ปัจจุบัน (UAT-031, UAT-032)
@@ -50,6 +71,17 @@ class JournalService:
                 query = query.filter_by(episode_id=ep_uuid)
             except (ValueError, TypeError):
                 pass
+
+        if lesson_id:
+            try:
+                query = query.filter_by(lesson_id=uuid.UUID(lesson_id))
+            except (ValueError, TypeError):
+                pass
+
+        keyword = (q or "").strip()
+        if keyword:
+            like = f"%{keyword}%"
+            query = query.filter(or_(Journal.title.ilike(like), Journal.content.ilike(like)))
 
         journals = query.order_by(Journal.created_at.desc()).all()
         return {
@@ -100,10 +132,13 @@ class JournalService:
             except (ValueError, TypeError):
                 ep_uuid = None
 
+        lesson_uuid, c_uuid = cls.resolve_lesson(data.get("lesson_id"), c_uuid)
+
         new_journal = Journal(
             user_id=user.user_id,
             classroom_id=c_uuid,
             episode_id=ep_uuid,
+            lesson_id=lesson_uuid,
             title=title.strip(),
             content=str(content).strip()
         )
@@ -199,6 +234,12 @@ class JournalService:
                     pass
             else:
                 journal.episode_id = None
+
+        if "lesson_id" in data:
+            journal.lesson_id, journal.classroom_id = cls.resolve_lesson(data.get("lesson_id"), journal.classroom_id)
+        elif journal.lesson_id and journal.lesson and journal.lesson.classroom_id != journal.classroom_id:
+            # ย้ายบันทึกไปคอร์สอื่น: บทเรียนเดิมไม่อยู่ในคอร์สใหม่แล้ว จึงเลิกผูก
+            journal.lesson_id = None
 
         try:
             db.session.commit()

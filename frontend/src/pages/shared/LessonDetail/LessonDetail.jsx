@@ -10,13 +10,15 @@ import {
   getMockContentsForEpisode,
 } from "../../../data/iot101Data";
 import { EPISODE_INTERACTIVE_DATA } from "../../../data/iot101InteractiveData";
-import LessonNoticeBanner from "./components/LessonNoticeBanner";
 import LessonBreadcrumbHeader from "./components/LessonBreadcrumbHeader";
 import ContentListSection from "./components/ContentListSection";
 import EpisodeNavigation from "./components/EpisodeNavigation";
 import AddContentModal from "./components/AddContentModal";
 import EditContentModal from "./components/EditContentModal";
 import EditLessonModal from "./components/EditLessonModal";
+import LessonProgressPanel from "./components/LessonProgressPanel";
+import LessonNotesPanel from "./components/LessonNotesPanel";
+import useLessonProgress from "./hooks/useLessonProgress";
 import {
   StoryScene,
   MissionCard,
@@ -27,6 +29,7 @@ import {
   ComponentCollection,
 } from "../../../features/courses/iot101";
 import { confirmDelete } from "../../../store/useConfirmStore";
+import { notify } from "../../../store/useToastStore";
 
 // ชื่อประเภทเนื้อหา ใช้ในกล่องยืนยันการลบ
 const CONTENT_TYPE_LABELS = {
@@ -60,7 +63,6 @@ function LessonDetail() {
   const [contents, setContents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [actionNotice, setActionNotice] = useState(null);
   const [episodeData, setEpisodeData] = useState(null);
 
   // Companion Modal inside lesson (Blueprint or Collection)
@@ -96,6 +98,19 @@ function LessonDetail() {
   const isStudentPreview =
     searchParams.get("preview") === "student" && (hasRole("instructor") || hasRole("admin"));
 
+  // ข้อ 24, 25: ความคืบหน้าของผู้เรียน (null สำหรับเจ้าของคอร์ส / Admin / โหมดดูตัวอย่าง)
+  const lessonProgress = useLessonProgress(lessonId, isIoT101 || isStudentPreview ? null : lesson?.progress);
+
+  // บทถัดไปในคอร์ส (ปุ่ม "ไปบทถัดไป" หลังเรียนจบ)
+  const orderedLessons = [...(classroom?.lessons || [])].sort(
+    (a, b) => (a.sequence_no ?? 0) - (b.sequence_no ?? 0)
+  );
+  const currentIndex = orderedLessons.findIndex((l) => String(l.lesson_id) === String(lessonId));
+  const nextLessonId =
+    currentIndex >= 0 && currentIndex < orderedLessons.length - 1
+      ? orderedLessons[currentIndex + 1].lesson_id
+      : null;
+
   // ตรวจสอบสิทธิ์: ผู้ใช้เป็น Admin หรือเป็น Instructor เจ้าของห้องเรียนนี้หรือไม่
   const isOwnerOrAdmin =
     !isStudentPreview &&
@@ -105,9 +120,9 @@ function LessonDetail() {
       (hasRole("instructor") &&
         String(classroom.instructor_id) === String(user.user_id)));
 
+  // แจ้งผลการทำงานผ่านแถบมุมขวาบนกลางของระบบ
   const showNotice = (type, text) => {
-    setActionNotice({ type, text });
-    setTimeout(() => setActionNotice(null), 3500);
+    notify.show(type, text);
   };
 
   const loadData = useCallback(async () => {
@@ -331,8 +346,6 @@ function LessonDetail() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-16">
-      {/* Notice Banner */}
-      <LessonNoticeBanner actionNotice={actionNotice} />
 
       {isStudentPreview && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
@@ -455,7 +468,20 @@ function LessonDetail() {
         onOpenAddContentModal={() => setIsAddContentModalOpen(true)}
         onOpenEditContent={handleOpenEditContent}
         onDeleteContent={handleDeleteContent}
+        lessonProgress={lessonProgress.isTracked ? lessonProgress : null}
       />
+
+      {/* 5.1 ปุ่ม "เรียนจบแล้ว" + สถานะการเรียน (ข้อ 24) และบันทึกการเรียนรู้ของบทนี้ (ข้อ 27) */}
+      {lessonProgress.isTracked && (
+        <>
+          <LessonProgressPanel
+            lessonProgress={lessonProgress}
+            classroomId={classroomId}
+            nextLessonId={nextLessonId}
+          />
+          <LessonNotesPanel lessonId={lessonId} classroomId={classroomId} lessonTitle={lesson?.title} />
+        </>
+      )}
 
       {/* 6. Episode Navigation */}
       <EpisodeNavigation

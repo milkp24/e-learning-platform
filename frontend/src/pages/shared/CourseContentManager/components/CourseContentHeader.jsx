@@ -27,7 +27,6 @@ function CourseContentHeader({
   mobileTab = "builder",
   onTabChange,
   onBack,
-  toastMessage,
   course = null,
   courseActions = [],
   onCourseStatusAction,
@@ -128,23 +127,6 @@ function CourseContentHeader({
         </div>
       </div>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          className={`rounded-2xl p-4 text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-sm transition-all animate-fadeIn ${
-            toastMessage.type === "success"
-              ? "bg-[#ABD1C6]/30 border border-[#ABD1C6] text-[#004643]"
-              : "bg-rose-50 border border-rose-200 text-rose-700"
-          }`}
-        >
-          {toastMessage.type === "success" ? (
-            <LuCheck className="h-5 w-5 shrink-0 text-emerald-700" />
-          ) : (
-            <LuAlertCircle className="h-5 w-5 shrink-0 text-rose-600" />
-          )}
-          <span>{toastMessage.text}</span>
-        </div>
-      )}
     </>
   );
 }

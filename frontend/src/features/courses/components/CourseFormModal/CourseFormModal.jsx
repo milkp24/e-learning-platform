@@ -1,12 +1,18 @@
-import { useEffect, useState } from "react";
-import { LuX, LuUpload, LuFilePen, LuSend } from "react-icons/lu";
+import { useEffect, useRef, useState } from "react";
+import { LuX, LuUpload, LuFilePen, LuSend, LuLoader } from "react-icons/lu";
+import { IMAGE_ACCEPT, mediaService, validateImageFile } from "../../../../services/mediaService";
+import { resolveMediaUrl } from "../../../../utils/mediaUrl";
+import { COURSE_VISIBILITY_OPTIONS } from "../../utils/courseVisibility";
 
 // ======================================================
 // CourseFormModal — ฟอร์มสร้าง / แก้ไขคอร์ส (ใช้ร่วมกันทุกหน้า ทุกบทบาท)
 // - mode="create": เลือกได้ว่าจะสร้างเป็นฉบับร่าง หรือเผยแพร่
 //                   (ผู้ไม่มีสิทธิ์ courses.publish จะเห็นเป็น "ส่งตรวจก่อนเผยแพร่")
 // - mode="edit":   แก้ชื่อ คำอธิบาย รูปปก (เปลี่ยนสถานะใช้ปุ่มสถานะบนการ์ด/ตาราง)
-// ส่งเฉพาะฟิลด์ที่ Backend บันทึกจริง (ชื่อ, คำอธิบาย, รูปปก, สถานะ)
+// ส่งเฉพาะฟิลด์ที่ Backend บันทึกจริง (ชื่อ, คำอธิบาย, รูปปก, สถานะ, การมองเห็น)
+// การมองเห็น (ข้อ 1): สาธารณะ / จำกัดสิทธิ์ / ซ่อน ตั้งได้ทั้งตอนสร้างและแก้ไข
+// รูปปก (ข้อ 22): เลือกรูปแล้วอัปโหลดขึ้นเซิร์ฟเวอร์ทันที เก็บแค่ที่อยู่ไฟล์ ไม่เก็บ Base64
+//   ระหว่างอัปโหลดแสดงตัวอย่างจากไฟล์ในเครื่อง จึงไม่ต้องรอโหลดรูปซ้ำจากเซิร์ฟเวอร์
 // ======================================================
 
 function getCreateOptions(canPublish) {
@@ -37,8 +43,6 @@ const inputClass =
   "w-full rounded-xl border border-[#E5E9E7] bg-[#FAFAFA] px-3.5 py-2.5 text-sm text-[#26332F] focus:border-[#ABD1C6] focus:bg-white focus:outline-none transition shadow-2xs";
 const labelClass = "block text-xs font-bold uppercase tracking-wider text-[#26332F]";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
 function CourseFormModal({
   isOpen,
   mode = "create",
@@ -54,8 +58,13 @@ function CourseFormModal({
   const [description, setDescription] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [status, setStatus] = useState("draft");
+  const [visibility, setVisibility] = useState("public");
   const [previewError, setPreviewError] = useState(false);
   const [fileError, setFileError] = useState("");
+  const [localPreview, setLocalPreview] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadSeq = useRef(0);
+  const originalThumbnail = isEdit ? course?.thumbnail_url || course?.cover_image || "" : "";
 
   // เปิดฟอร์มใหม่ทุกครั้ง: โหมดแก้ไขเติมค่าเดิม, โหมดสร้างล้างค่า (เริ่มที่ฉบับร่าง)
   useEffect(() => {
@@ -64,43 +73,75 @@ function CourseFormModal({
     setDescription(isEdit ? course?.description || "" : "");
     setThumbnailUrl(isEdit ? course?.thumbnail_url || course?.cover_image || "" : "");
     setStatus("draft");
+    setVisibility(isEdit ? course?.visibility || "public" : "public");
     setPreviewError(false);
     setFileError("");
+    setLocalPreview("");
+    setIsUploading(false);
   }, [isOpen, isEdit, course]);
+
+  // คืนหน่วยความจำของรูปตัวอย่างเมื่อเปลี่ยนรูปหรือปิดฟอร์ม
+  useEffect(() => {
+    if (!localPreview) return undefined;
+    return () => URL.revokeObjectURL(localPreview);
+  }, [localPreview]);
 
   if (!isOpen || (isEdit && !course)) return null;
 
-  const handleImageFileChange = (e) => {
+  const handleImageFileChange = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // เลือกไฟล์เดิมซ้ำได้
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setFileError("กรุณาเลือกไฟล์รูปภาพเท่านั้น (เช่น .jpg, .png)");
-      return;
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setFileError("ไฟล์รูปภาพต้องมีขนาดไม่เกิน 5 MB");
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setFileError(invalid);
       return;
     }
     setFileError("");
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setThumbnailUrl(event.target.result);
-      setPreviewError(false);
-    };
-    reader.readAsDataURL(file);
+    setPreviewError(false);
+    setLocalPreview(URL.createObjectURL(file));
+
+    const seq = ++uploadSeq.current;
+    setIsUploading(true);
+    try {
+      const res = await mediaService.uploadImage(file);
+      if (seq !== uploadSeq.current) return; // ผู้ใช้เลือกรูปใหม่ระหว่างอัปโหลด
+      setThumbnailUrl(res.relative_url || res.file_url);
+    } catch (err) {
+      if (seq !== uploadSeq.current) return;
+      setLocalPreview("");
+      setFileError(err.response?.data?.message || "อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      if (seq === uploadSeq.current) setIsUploading(false);
+    }
+  };
+
+  const clearImage = () => {
+    uploadSeq.current += 1;
+    setIsUploading(false);
+    setLocalPreview("");
+    setThumbnailUrl("");
+    setPreviewError(false);
+    setFileError("");
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || isUploading) return;
     const payload = {
       title: title.trim(),
       description: description.trim() || null,
-      thumbnail_url: thumbnailUrl.trim() || null,
+      visibility,
     };
+    // แก้ไขคอร์ส: ส่งรูปปกเฉพาะเมื่อเปลี่ยน (รูปเก่าที่เป็น Base64 จะได้ไม่ถูกปฏิเสธตอนบันทึกชื่อ)
+    const cover = thumbnailUrl.trim() || null;
+    if (!isEdit || cover !== (originalThumbnail || null)) payload.thumbnail_url = cover;
     if (!isEdit) payload.status = status;
     onSubmit(payload);
   };
+
+  const isUploadedFile = thumbnailUrl.startsWith("/api/") || thumbnailUrl.startsWith("data:");
+  const previewSrc = localPreview || resolveMediaUrl(thumbnailUrl);
 
   const submitLabel = isEdit
     ? isSubmitting
@@ -219,42 +260,92 @@ function CourseFormModal({
           </fieldset>
           )}
 
+          {/* การมองเห็นคอร์สเมื่อเผยแพร่แล้ว (ข้อ 1) */}
+          <fieldset className="space-y-2">
+            <legend className={labelClass}>ใครเห็นคอร์สนี้ได้ (เมื่อเผยแพร่แล้ว)</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {COURSE_VISIBILITY_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const selected = visibility === opt.key;
+                return (
+                  <label
+                    key={opt.key}
+                    className={`flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 transition ${
+                      selected
+                        ? "border-[#004643] bg-[#ABD1C6]/20 ring-1 ring-[#004643]"
+                        : "border-[#E5E9E7] bg-white hover:border-[#ABD1C6]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="course-visibility"
+                      value={opt.key}
+                      checked={selected}
+                      onChange={() => setVisibility(opt.key)}
+                      className="sr-only"
+                    />
+                    <Icon
+                      className={`mt-0.5 h-4 w-4 shrink-0 ${selected ? "text-[#004643]" : "text-[#6B7773]"}`}
+                      aria-hidden="true"
+                    />
+                    <span className="space-y-0.5">
+                      <span className="block text-sm font-bold text-[#26332F]">{opt.label}</span>
+                      <span className="block text-[11px] leading-snug text-[#6B7773]">{opt.hint}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
           <div className="space-y-2">
             <span className={labelClass}>รูปปกคอร์ส</span>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 aria-label="ลิงก์รูปปก"
-                value={thumbnailUrl.startsWith("data:") ? "" : thumbnailUrl}
+                value={isUploadedFile || localPreview ? "" : thumbnailUrl}
                 onChange={(e) => {
+                  uploadSeq.current += 1;
+                  setIsUploading(false);
+                  setLocalPreview("");
                   setThumbnailUrl(e.target.value);
                   setPreviewError(false);
                 }}
                 placeholder={
-                  thumbnailUrl.startsWith("data:")
-                    ? "ใช้รูปที่เลือกจากเครื่อง"
-                    : "วางลิงก์รูปภาพ หรือเลือกรูปจากเครื่อง"
+                  isUploading
+                    ? "กำลังอัปโหลดรูป..."
+                    : isUploadedFile || localPreview
+                    ? "ใช้รูปที่อัปโหลดจากเครื่อง"
+                    : "วางลิงก์รูปภาพ (https://...) หรือเลือกรูปจากเครื่อง"
                 }
                 className={`flex-1 ${inputClass} text-xs sm:text-sm`}
               />
               <label className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#ABD1C6] bg-[#ABD1C6]/20 px-4 py-2.5 text-xs font-bold text-[#004643] hover:bg-[#ABD1C6]/40 cursor-pointer transition">
                 <LuUpload className="h-4 w-4" aria-hidden="true" />
-                <span>เลือกรูปจากเครื่อง</span>
-                <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
+                <span>{previewSrc ? "เปลี่ยนรูป" : "เลือกรูปจากเครื่อง"}</span>
+                <input type="file" accept={IMAGE_ACCEPT} onChange={handleImageFileChange} className="hidden" />
               </label>
             </div>
+            <p className="text-[11px] text-[#6B7773]">PNG, JPG หรือ WEBP ขนาดไม่เกิน 5 MB</p>
             {fileError && <p className="text-xs font-semibold text-rose-600">{fileError}</p>}
-            {thumbnailUrl && !previewError && (
+            {previewSrc && !previewError && (
               <div className="relative mt-2 overflow-hidden rounded-2xl border border-[#E5E9E7] bg-gray-50 h-36">
                 <img
-                  src={thumbnailUrl}
+                  src={previewSrc}
                   alt="ตัวอย่างรูปปก"
                   onError={() => setPreviewError(true)}
                   className="h-full w-full object-cover"
                 />
+                {isUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 text-xs font-bold text-white">
+                    <LuLoader className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    กำลังอัปโหลด...
+                  </div>
+                )}
                 <button
                   type="button"
-                  onClick={() => setThumbnailUrl("")}
+                  onClick={clearImage}
                   className="absolute top-2 right-2 rounded-xl bg-black/60 p-1.5 text-white hover:bg-black/80 transition cursor-pointer"
                   title="เอารูปปกออก"
                 >
@@ -279,7 +370,7 @@ function CourseFormModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !title.trim()}
+              disabled={isSubmitting || isUploading || !title.trim()}
               className="rounded-xl bg-[#ABD1C6] px-6 py-2.5 text-xs font-bold text-[#20302C] hover:bg-[#9bc3b7] disabled:opacity-50 transition cursor-pointer shadow-sm"
             >
               {submitLabel}

@@ -20,6 +20,7 @@ import {
 } from "../../utils/courseListFilters";
 import { normalizeCourseStatus } from "../../utils/courseStatus";
 import RejectCourseDialog from "./RejectCourseDialog";
+import { notify } from "../../../../store/useToastStore";
 
 // ======================================================
 // CourseListPage — หน้ารายการคอร์สหน้าเดียว ใช้กับทุกเส้นทางและทุกบทบาท
@@ -104,7 +105,6 @@ function CourseListPage() {
   const [isRejecting, setIsRejecting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toast, setToast] = useState(null);
 
   const [form, setForm] = useState({ open: false, mode: "create", course: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,9 +115,9 @@ function CourseListPage() {
   const [joiningId, setJoiningId] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
+  // แจ้งผลการทำงานผ่านแถบมุมขวาบนกลางของระบบ
   const showToast = (type, text) => {
-    setToast({ type, text });
-    setTimeout(() => setToast(null), 3500);
+    notify.show(type, text);
   };
 
   const fetchCourses = async () => {
@@ -297,23 +297,6 @@ function CourseListPage() {
         )}
       </PageHeader>
 
-      {toast && (
-        <div
-          role="status"
-          className={`flex items-center gap-2.5 rounded-2xl p-4 text-xs sm:text-sm font-bold shadow-sm ${
-            toast.type === "success"
-              ? "border border-[#ABD1C6] bg-[#ABD1C6]/30 text-[#004643]"
-              : "border border-rose-200 bg-rose-50 text-rose-700"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <LuCheck className="h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
-          ) : (
-            <LuCircleAlert className="h-5 w-5 shrink-0 text-rose-600" aria-hidden="true" />
-          )}
-          <span>{toast.text}</span>
-        </div>
-      )}
 
       <CourseListToolbar
         categories={categories}

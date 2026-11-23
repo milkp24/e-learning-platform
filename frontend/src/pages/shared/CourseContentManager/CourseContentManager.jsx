@@ -19,6 +19,7 @@ import StudentPreviewModal from "./components/StudentPreviewModal";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
 import { getStatusActions } from "../../../features/courses/utils/courseStatus";
+import { notify } from "../../../store/useToastStore";
 
 /**
  * CourseContentManager Page Component (หน้าจัดการเนื้อหาคอร์สเรียน)
@@ -52,7 +53,6 @@ function CourseContentManager() {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [toastMessage, setToastMessage] = useState(null);
   const [isCoursePublishing, setIsCoursePublishing] = useState(false);
 
   // มุมมองแท็บบน Mobile ('tree' | 'builder')
@@ -91,9 +91,9 @@ function CourseContentManager() {
   const [isUnsavedDialogOpen, setIsUnsavedDialogOpen] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
 
+  // แจ้งผลการทำงานผ่านแถบมุมขวาบนกลางของระบบ
   const showToast = (type, text) => {
-    setToastMessage({ type, text });
-    setTimeout(() => setToastMessage(null), 3500);
+    notify.show(type, text);
   };
 
   // 1. ดักจับการปิดแท็บเบราว์เซอร์เมื่อมี Unsaved Changes
@@ -878,7 +878,6 @@ function CourseContentManager() {
         mobileTab={mobileTab}
         onTabChange={setMobileTab}
         onBack={handleBackToCourses}
-        toastMessage={toastMessage}
         course={isIoT101 ? null : course}
         courseActions={courseActions}
         onCourseStatusAction={handleCourseStatusAction}

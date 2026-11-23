@@ -11,6 +11,7 @@ function ContentListSection({
   onOpenAddContentModal,
   onOpenEditContent,
   onDeleteContent,
+  lessonProgress = null,
 }) {
   return (
     <div className="space-y-6">
@@ -82,7 +83,22 @@ function ContentListSection({
               </div>
 
               {/* ตัวแสดงผลเนื้อหาตามชนิด (ContentRenderer) */}
-              <ContentRenderer content={item} />
+              <ContentRenderer
+                content={item}
+                videoProgress={
+                  lessonProgress && lessonProgress.percentOf(item.content_id) !== undefined
+                    ? {
+                        percent: lessonProgress.percentOf(item.content_id),
+                        requiredPercent: lessonProgress.requiredPercent,
+                      }
+                    : null
+                }
+                onVideoProgress={
+                  lessonProgress
+                    ? (position, duration) => lessonProgress.reportVideo(item.content_id, position, duration)
+                    : undefined
+                }
+              />
             </div>
           ))}
         </div>

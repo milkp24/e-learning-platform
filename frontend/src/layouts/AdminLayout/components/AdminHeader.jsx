@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LuBot,
-  LuCrown,
   LuUser,
   LuSettings,
   LuLogOut,
@@ -19,6 +18,8 @@ import {
 import useAuthStore from "../../../store/useAuthStore";
 import usePermissionStore from "../../../features/permissions/store/usePermissionStore";
 import HamburgerButton from "../../../components/layout/HamburgerButton";
+import UserAvatar from "../../../components/common/UserAvatar";
+import { getHeaderName } from "../../../utils/userDisplay";
 
 /**
  * AdminHeader Component
@@ -43,11 +44,11 @@ function AdminHeader({ onOpenSidebar }) {
   const profileRef = useRef(null);
   const notifRef = useRef(null);
 
-  const displayName =
-    user?.profile?.display_name || user?.email?.split("@")[0] || "ผู้ดูแลระบบ";
 
   const isSuper = isSuperAdmin?.() || hasRole("super_admin");
   const roleSubtitle = isSuper ? "Super Admin" : "Admin";
+  // ชื่อซ้ำกับบทบาท (เช่น "Super Admin" / "Super Admin") แสดงอีเมลแทน
+  const displayName = getHeaderName(user, roleSubtitle, "ผู้ดูแลระบบ");
   const roleBadgeText = isSuper ? "Super Admin" : "Admin";
 
   // Handle Ctrl+K shortcut to toggle quick search modal
@@ -266,9 +267,7 @@ function AdminHeader({ onOpenSidebar }) {
                 aria-label="เมนูผู้ใช้งาน"
                 aria-expanded={isProfileOpen}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ABD1C6]/40 text-[#004643]">
-                  <LuCrown className="h-4 w-4" aria-hidden="true" />
-                </span>
+                <UserAvatar user={user} name={displayName} />
                 <div className="hidden sm:flex flex-col text-left">
                   <span className="text-xs font-bold text-[#26332F] leading-tight truncate max-w-[110px] sm:max-w-[130px]">
                     {displayName}

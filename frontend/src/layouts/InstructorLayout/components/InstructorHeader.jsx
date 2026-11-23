@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import {
   LuBot,
-  LuGraduationCap,
   LuEye,
   LuChartBar as LuBarChart3,
   LuBookOpen,
@@ -12,6 +11,8 @@ import {
 import useAuthStore from "../../../store/useAuthStore";
 import Dropdown from "../../../components/common/Dropdown";
 import HamburgerButton from "../../../components/layout/HamburgerButton";
+import UserAvatar from "../../../components/common/UserAvatar";
+import { getHeaderName } from "../../../utils/userDisplay";
 
 // ======================================================
 // InstructorHeader Component (แถบนำทางส่วนบนสำหรับผู้สอน)
@@ -30,8 +31,6 @@ function InstructorHeader({ onOpenSidebar }) {
     navigate("/login");
   };
 
-  const displayName =
-    user?.profile?.display_name || user?.email?.split("@")[0] || "อาจารย์ผู้สอน";
 
   const isSuper = isSuperAdmin?.() || hasRole("super_admin");
   const isAdmin = hasRole("admin") || isSuper;
@@ -41,6 +40,8 @@ function InstructorHeader({ onOpenSidebar }) {
     : isAdmin
     ? "Admin"
     : "Instructor";
+  // ชื่อซ้ำกับบทบาท (เช่น "Super Admin" / "Super Admin") แสดงอีเมลแทน
+  const displayName = getHeaderName(user, roleSubtitle, "อาจารย์ผู้สอน");
 
   const roleBadgeText = isSuper
     ? "Super Admin Account"
@@ -97,9 +98,7 @@ function InstructorHeader({ onOpenSidebar }) {
                 aria-label="เมนูผู้ใช้งาน"
                 aria-expanded={isOpen}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ABD1C6]/40 text-[#004643]">
-                  <LuGraduationCap className="h-4 w-4" aria-hidden="true" />
-                </span>
+                <UserAvatar user={user} name={displayName} />
                 <div className="hidden sm:flex flex-col text-left">
                   <span className="text-xs font-bold text-[#26332F] leading-tight truncate max-w-[110px] sm:max-w-[130px]">
                     {displayName}

@@ -22,7 +22,13 @@ def list_journals():
     classroom_id = request.args.get("classroom_id") or request.args.get("course_id")
     episode_id = request.args.get("episode_id")
     try:
-        res = JournalService.list_journals(user, classroom_id=classroom_id, episode_id=episode_id)
+        res = JournalService.list_journals(
+            user,
+            classroom_id=classroom_id,
+            episode_id=episode_id,
+            lesson_id=request.args.get("lesson_id"),
+            q=request.args.get("q"),
+        )
         return jsonify(res), 200
     except JournalServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code

@@ -115,7 +115,9 @@ class LessonProgress(db.Model):
     )
 
     user = db.relationship("User", backref=db.backref("lesson_progresses", lazy="dynamic"))
-    lesson = db.relationship("Lesson", backref=db.backref("user_progresses", lazy="dynamic"))
+    # passive_deletes: ลบบทเรียนแล้วให้ฐานข้อมูลลบความคืบหน้าตาม (ON DELETE CASCADE)
+    # เดิม ORM จะพยายามตั้ง lesson_id เป็นค่าว่างจนลบบทเรียนที่มีผู้เรียนเรียนแล้วไม่ได้
+    lesson = db.relationship("Lesson", backref=db.backref("user_progresses", lazy="dynamic", passive_deletes=True))
 
     def to_dict(self) -> dict:
         return {
@@ -169,7 +171,7 @@ class EpisodeProgress(db.Model):
     )
 
     user = db.relationship("User", backref=db.backref("episode_progresses", lazy="dynamic"))
-    episode = db.relationship("Episode", backref=db.backref("user_progresses", lazy="dynamic"))
+    episode = db.relationship("Episode", backref=db.backref("user_progresses", lazy="dynamic", passive_deletes=True))
 
     def to_dict(self) -> dict:
         return {
@@ -179,6 +181,54 @@ class EpisodeProgress(db.Model):
             "watched_seconds": self.watched_seconds,
             "is_completed": self.is_completed,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }
+
+
+class ContentProgress(db.Model):
+    """ความคืบหน้าการดูวิดีโอรายคลิป (ข้อ 25) ต่อผู้เรียน 1 คน
+    - max_percent: เปอร์เซ็นต์สูงสุดที่เคยดูถึง (ไม่ลดลงเมื่อย้อนดูใหม่)
+    - ปุ่ม "เรียนจบแล้ว" (ข้อ 24) กดได้เมื่อทุกวิดีโอในบทดูถึง VIDEO_COMPLETE_PERCENT
+    """
+
+    __tablename__ = "content_progress"
+
+    id = db.Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    user_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    content_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("contents.content_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    position_seconds = db.Column(db.Float, nullable=False, default=0)
+    duration_seconds = db.Column(db.Float, nullable=True)
+    max_percent = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "content_id", name="uq_user_content_progress"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "content_id": str(self.content_id),
+            "position_seconds": self.position_seconds or 0,
+            "duration_seconds": self.duration_seconds,
+            "percent": self.max_percent or 0,
         }
 
 

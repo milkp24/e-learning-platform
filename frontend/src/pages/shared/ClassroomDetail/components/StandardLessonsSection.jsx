@@ -11,7 +11,9 @@ import {
   LuLock,
   LuListTree,
   LuTrash2,
+  LuNotebookPen,
 } from "react-icons/lu";
+import LessonProgressBadge from "../../../../features/lessons/components/LessonProgressBadge";
 
 /**
  * StandardLessonsSection Component
@@ -56,7 +58,7 @@ function StandardLessonsSection({
   };
 
   // Helper to render an Episode item
-  const renderEpisodeItem = (ep, parentLessonId) => {
+  const renderEpisodeItem = (ep, parentLessonId, isLocked = false) => {
     const epId = ep.episode_id || ep.id;
     const durationText = formatDuration(ep.duration_seconds);
 
@@ -105,6 +107,11 @@ function StandardLessonsSection({
               <LuLock className="h-3.5 w-3.5" aria-hidden="true" />
               <span>เริ่ม Episode</span>
             </button>
+          ) : isEnrolled && isLocked ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400">
+              <LuLock className="h-3.5 w-3.5" aria-hidden="true" />
+              ล็อกอยู่
+            </span>
           ) : isEnrolled ? (
             <Link
               to={`/classrooms/${classroomId}/lessons/${parentLessonId}${previewQuery}`}
@@ -162,6 +169,19 @@ function StandardLessonsSection({
                 {lesson.title}
               </h4>
               <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#6B7773] mt-0.5">
+                {/* ข้อ 24: สถานะการเรียนของผู้เรียน (ไม่แสดงให้เจ้าของคอร์ส / Admin) */}
+                {lesson.progress_status && <LessonProgressBadge status={lesson.progress_status} />}
+                {/* ข้อ 27: บทนี้มีบันทึกการเรียนรู้ของฉันกี่รายการ */}
+                {lesson.note_count > 0 && (
+                  <Link
+                    to={`/journals?course=${classroomId}&lesson=${lessonId}`}
+                    title="ดูบันทึกการเรียนรู้ของบทนี้"
+                    className="inline-flex items-center gap-1 rounded-full border border-[#ABD1C6] bg-[#ABD1C6]/20 px-2 py-0.5 text-[11px] font-bold text-[#004643] hover:bg-[#ABD1C6]/40"
+                  >
+                    <LuNotebookPen className="h-3 w-3" aria-hidden="true" />
+                    มีบันทึก {lesson.note_count}
+                  </Link>
+                )}
                 <span>
                   {episodes.length > 0
                     ? `${episodes.length} ตอนย่อย`
@@ -186,13 +206,27 @@ function StandardLessonsSection({
                 <LuLock className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>เริ่มบทเรียน</span>
               </button>
+            ) : isEnrolled && lesson.is_locked && !isOwnerOrAdmin ? (
+              <span
+                title="เรียนบทก่อนหน้าให้จบก่อน"
+                className="inline-flex items-center gap-1 rounded-xl bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-500"
+              >
+                <LuLock className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>ล็อกอยู่</span>
+              </span>
             ) : isEnrolled ? (
               <Link
                 to={`/classrooms/${classroomId}/lessons/${lessonId}${previewQuery}`}
                 className="inline-flex items-center gap-1 rounded-xl bg-[#004643] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#003835] transition shadow-2xs"
               >
                 <LuCirclePlay className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>เข้าเรียน</span>
+                <span>
+                  {lesson.progress_status === "completed"
+                    ? "ทบทวน"
+                    : lesson.progress_status === "in_progress"
+                    ? "เรียนต่อ"
+                    : "เข้าเรียน"}
+                </span>
               </Link>
             ) : null}
 
@@ -226,7 +260,7 @@ function StandardLessonsSection({
                 ยังไม่มีตอนย่อยในบทเรียนนี้
               </div>
             ) : (
-              episodes.map((ep) => renderEpisodeItem(ep, lessonId))
+              episodes.map((ep) => renderEpisodeItem(ep, lessonId, Boolean(lesson.is_locked) && !isOwnerOrAdmin))
             )}
           </div>
         )}

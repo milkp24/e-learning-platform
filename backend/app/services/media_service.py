@@ -44,6 +44,90 @@ class MediaService:
 
     MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
+    # รูปภาพ (รูปปกคอร์ส, รูปโปรไฟล์) ข้อ 22, 23: รับเฉพาะรูป ขนาดไม่เกิน 5 MB
+    IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+    MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+    UPLOADS_PATH = "/api/v1/media/uploads/"
+    MAX_IMAGE_URL_LENGTH = 512  # เท่ากับความยาวคอลัมน์ thumbnail_url
+
+    @staticmethod
+    def detect_image_type(head: bytes) -> str | None:
+        """ดูจากเนื้อไฟล์จริง (Magic Bytes) ว่าเป็นรูปชนิดไหน กันการเปลี่ยนนามสกุลไฟล์อื่นเป็น .png"""
+        if head.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "png"
+        if head[:3] == b"\xff\xd8\xff":
+            return "jpeg"
+        if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+            return "webp"
+        return None
+
+    @classmethod
+    def save_image(cls, file, caller: User | None, host_url: str) -> tuple[dict, int]:
+        """
+        อัปโหลดรูปภาพ (ข้อ 22, 23) แล้วคืนที่อยู่ไฟล์ไปบันทึกแทนการเก็บ Base64 ลงฐานข้อมูล
+        - รับเฉพาะ PNG, JPG, JPEG, WEBP ไม่เกิน 5 MB
+        - ตรวจเนื้อไฟล์ว่าเป็นรูปจริง ไม่ใช่แค่นามสกุล
+        - ไม่บันทึกไฟล์ที่ไม่ผ่านการตรวจ
+        """
+        if not file or not file.filename or not file.filename.strip():
+            raise MediaServiceError("กรุณาเลือกไฟล์รูปภาพ", 400, "Validation Error")
+
+        name = file.filename.strip()
+        ext = name.rsplit(".", 1)[1].lower() if "." in name else ""
+        if ext not in cls.IMAGE_EXTENSIONS:
+            raise MediaServiceError(
+                "รองรับเฉพาะไฟล์รูปภาพ PNG, JPG หรือ WEBP เท่านั้น", 400, "Validation Error"
+            )
+
+        file.seek(0, os.SEEK_END)
+        size = file.tell()
+        file.seek(0)
+        if size == 0:
+            raise MediaServiceError("ไฟล์รูปภาพว่างเปล่า กรุณาเลือกไฟล์ใหม่", 400, "Validation Error")
+        if size > cls.MAX_IMAGE_SIZE:
+            raise MediaServiceError(
+                f"รูปภาพต้องมีขนาดไม่เกิน {cls.MAX_IMAGE_SIZE // (1024 * 1024)} MB "
+                f"(ไฟล์นี้ {size / (1024 * 1024):.1f} MB) กรุณาย่อรูปแล้วลองใหม่",
+                400,
+                "Payload Too Large",
+            )
+
+        head = file.read(16)
+        file.seek(0)
+        if cls.detect_image_type(head) is None:
+            raise MediaServiceError(
+                "ไฟล์นี้ไม่ใช่รูปภาพที่ถูกต้อง กรุณาเลือกไฟล์ PNG, JPG หรือ WEBP", 400, "Validation Error"
+            )
+
+        return cls.save_uploaded_file(file, caller, host_url)
+
+    @classmethod
+    def clean_image_url(cls, value, field_label: str = "รูปภาพ") -> str | None:
+        """
+        ตรวจค่ารูปภาพก่อนบันทึก (ข้อ 22): เก็บได้แค่ลิงก์ http(s) หรือที่อยู่ไฟล์ที่อัปโหลดแล้ว
+        ไม่รับ Base64 (data:) เพราะยาวเกินคอลัมน์และทำให้บันทึกไม่ได้
+        """
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise MediaServiceError(f"{field_label}ไม่ถูกต้อง", 400, "Validation Error")
+        url = value.strip()
+        if not url:
+            return None
+        if url.startswith("data:"):
+            raise MediaServiceError(
+                f"{field_label}ต้องอัปโหลดผ่านปุ่มเลือกรูปก่อน ระบบไม่รับรูปแบบ Base64", 400, "Validation Error"
+            )
+        if len(url) > cls.MAX_IMAGE_URL_LENGTH:
+            raise MediaServiceError(
+                f"ลิงก์{field_label}ยาวเกิน {cls.MAX_IMAGE_URL_LENGTH} ตัวอักษร", 400, "Validation Error"
+            )
+        if not (url.startswith(("http://", "https://")) or url.startswith(cls.UPLOADS_PATH)):
+            raise MediaServiceError(
+                f"ลิงก์{field_label}ต้องขึ้นต้นด้วย http:// หรือ https://", 400, "Validation Error"
+            )
+        return url
+
     @classmethod
     def get_upload_dir(cls) -> str:
         """ดึงหรือสร้างโฟลเดอร์สำหรับจัดเก็บไฟล์ที่อัปโหลด"""

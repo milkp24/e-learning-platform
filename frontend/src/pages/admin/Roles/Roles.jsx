@@ -26,6 +26,7 @@ import UserRolesManagerSection from "./components/UserRolesManagerSection";
 import RolesInfoCard from "./components/RolesInfoCard";
 import { getAllPermissionKeys } from "../../../features/permissions/data/permissionsData";
 import { confirmAction, confirmDelete } from "../../../store/useConfirmStore";
+import { notify } from "../../../store/useToastStore";
 
 const TOTAL_PERMISSIONS = getAllPermissionKeys().length;
 
@@ -89,13 +90,8 @@ function Roles() {
   const [selectedRoleToAssign, setSelectedRoleToAssign] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
 
-  // State สำหรับแจ้งเตือน (Notice Banner)
-  const [notice, setNotice] = useState(null);
-
-  const showNotice = (type, text) => {
-    setNotice({ type, text });
-    setTimeout(() => setNotice(null), 4000);
-  };
+  // แจ้งผลการทำงานผ่านแถบมุมขวาบนกลางของระบบ
+  const showNotice = (type, text) => notify.show(type, text);
 
   // GET /api/v1/roles for Tab 2
   const fetchSystemRoles = useCallback(async () => {
@@ -328,23 +324,6 @@ function Roles() {
         </div>
       </div>
 
-      {/* Notice Banner */}
-      {notice && (
-        <div
-          className={`rounded-2xl p-4 text-xs sm:text-sm font-semibold transition flex items-center gap-2.5 shadow-2xs ${
-            notice.type === "success"
-              ? "bg-[#ABD1C6]/25 text-[#004643] border border-[#ABD1C6]"
-              : "bg-rose-50 text-rose-800 border border-rose-200"
-          }`}
-        >
-          {notice.type === "success" ? (
-            <LuCheck className="h-4 w-4 shrink-0 text-emerald-700" />
-          ) : (
-            <LuAlertTriangle className="h-4 w-4 shrink-0 text-rose-700" />
-          )}
-          <span>{notice.text}</span>
-        </div>
-      )}
 
       {/* Tabs Switcher */}
       <div className="flex border-b border-[#E5E9E7] gap-4">

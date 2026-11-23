@@ -4,6 +4,8 @@ import { LuBookOpen, LuLayers, LuUsers, LuEye, LuListTree } from "react-icons/lu
 import { getCourseStatus } from "../../utils/courseStatus";
 import CourseManageActions from "../CourseManageActions";
 import ReviewNote from "../ReviewNote";
+import { resolveMediaUrl } from "../../../../utils/mediaUrl";
+import CourseVisibilityBadge from "../CourseVisibilityBadge";
 
 // ======================================================
 // CourseTable — มุมมองตารางของรายการคอร์ส (คู่กับมุมมองการ์ด CourseCard)
@@ -18,12 +20,13 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" });
 }
 
-function Thumbnail({ src, title }) {
-  const [failed, setFailed] = useState(false);
+function Thumbnail({ src: rawSrc, title }) {
+  const src = resolveMediaUrl(rawSrc);
+  const [failedSrc, setFailedSrc] = useState(null);
   return (
     <div className="h-12 w-16 shrink-0 overflow-hidden rounded-xl border border-[#E5E9E7] bg-gray-100">
-      {src && !failed ? (
-        <img src={src} alt={title} className="h-full w-full object-cover" onError={() => setFailed(true)} loading="lazy" />
+      {src && failedSrc !== src ? (
+        <img src={src} alt={title} className="h-full w-full object-cover" onError={() => setFailedSrc(src)} loading="lazy" />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-[#ABD1C6]/30 text-[#004643]">
           <LuBookOpen className="h-5 w-5" aria-hidden="true" />
@@ -88,6 +91,7 @@ function CourseTableRow({ course, showStatus, canManage, isStudent, onJoin, isJo
             <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
             {status.label}
           </span>
+          <CourseVisibilityBadge visibility={course.visibility} className="ml-1" />
           <p className="mt-1 text-[11px] text-[#6B7773]">แก้ไข {formatDate(course.updated_at)}</p>
         </td>
       )}

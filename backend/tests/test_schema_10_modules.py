@@ -39,12 +39,13 @@ class TestSchema10Modules(unittest.TestCase):
         self.db.session.rollback()
 
     def test_01_total_table_count_and_no_parents(self):
-        """Verify exactly 88 tables are registered, and Parent/ParentStudent are strictly absent."""
+        """Verify exactly 89 tables are registered, and Parent/ParentStudent are strictly absent.
+        (88 เดิม + content_progress ความคืบหน้าการดูวิดีโอ ข้อ 25)"""
         tables = set(self.db.metadata.tables.keys())
         print(f"\n[INFO] Total registered tables in metadata: {len(tables)}")
         
-        # Verify 88 tables
-        self.assertEqual(len(tables), 88, f"Expected 88 tables, found {len(tables)}: {sorted(tables)}")
+        # Verify 89 tables
+        self.assertEqual(len(tables), 89, f"Expected 89 tables, found {len(tables)}: {sorted(tables)}")
 
         # Strict prohibition: Parent and ParentStudent must NOT exist
         self.assertNotIn("parents", tables, "Prohibited table 'parents' found in metadata!")

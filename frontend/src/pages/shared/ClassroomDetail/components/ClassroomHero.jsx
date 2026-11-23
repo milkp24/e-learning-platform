@@ -12,6 +12,8 @@ import {
 import CourseManageActions from "../../../../features/courses/components/CourseManageActions";
 import ReviewNote from "../../../../features/courses/components/ReviewNote";
 import { getStatusActions } from "../../../../features/courses/utils/courseStatus";
+import { resolveMediaUrl } from "../../../../utils/mediaUrl";
+import CourseVisibilityBadge from "../../../../features/courses/components/CourseVisibilityBadge";
 
 /**
  * ClassroomHero Component
@@ -45,9 +47,10 @@ function ClassroomHero({
   // ปุ่มสถานะชุดเดียวกับการ์ด/ตาราง ("ไม่อนุมัติ" ต้องกรอกเหตุผล จึงทำจากหน้าตรวจคอร์สก่อนเผยแพร่)
   const statusActions = getStatusActions(classroom).filter((a) => a.key !== "reject");
   const courseId = classroom.classroom_id || classroom.id;
-  const [imageError, setImageError] = useState(false);
-  const rawCover = classroom.cover_image || classroom.thumbnail_url;
-  const showFallback = !rawCover || imageError;
+  // จำว่ารูปไหนโหลดไม่ขึ้น พอแก้รูปปกแล้วจะลองโหลดรูปใหม่ทันที (ข้อ 21)
+  const rawCover = resolveMediaUrl(classroom.cover_image || classroom.thumbnail_url);
+  const [failedCover, setFailedCover] = useState(null);
+  const showFallback = !rawCover || failedCover === rawCover;
 
   const firstLessonPath = isIoT101
     ? "/classrooms/iot-101/lessons/ep-0-1"
@@ -77,6 +80,7 @@ function ClassroomHero({
                 {getCourseStatus(classroom.status).label}
               </span>
             )}
+            {isOwnerOrAdmin && !isIoT101 && <CourseVisibilityBadge visibility={classroom.visibility} showPublic />}
 
             <span className="rounded-lg bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
               {classroom.level || "ระดับ Beginner"}
@@ -168,7 +172,7 @@ function ClassroomHero({
                 src={rawCover}
                 alt={classroom.title || "Course Cover"}
                 className="h-full w-full object-cover object-center"
-                onError={() => setImageError(true)}
+                onError={() => setFailedCover(rawCover)}
                 loading="lazy"
               />
             )}

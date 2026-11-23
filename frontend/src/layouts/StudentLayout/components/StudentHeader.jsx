@@ -3,7 +3,6 @@ import {
   LuBot,
   LuFlame,
   LuZap,
-  LuUser,
   LuHouse as LuHome,
   LuClipboardList,
   LuBookOpen,
@@ -14,6 +13,8 @@ import {
 import useAuthStore from "../../../store/useAuthStore";
 import Dropdown from "../../../components/common/Dropdown";
 import HamburgerButton from "../../../components/layout/HamburgerButton";
+import UserAvatar from "../../../components/common/UserAvatar";
+import { getHeaderName } from "../../../utils/userDisplay";
 
 // ======================================================
 // StudentHeader Component (แถบนำทางส่วนบนสำหรับผู้เรียน)
@@ -32,8 +33,6 @@ function StudentHeader({ onOpenSidebar }) {
     navigate("/login");
   };
 
-  const displayName =
-    user?.profile?.display_name || user?.email?.split("@")[0] || "ผู้เรียน";
 
   const isSuper = isSuperAdmin?.() || hasRole("super_admin");
   const isAdmin = hasRole("admin") || isSuper;
@@ -46,6 +45,8 @@ function StudentHeader({ onOpenSidebar }) {
     : isInstructor
     ? "Instructor"
     : "Student";
+  // ชื่อซ้ำกับบทบาท (เช่น "Super Admin" / "Super Admin") แสดงอีเมลแทน
+  const displayName = getHeaderName(user, roleSubtitle, "ผู้เรียน");
 
   const roleBadgeText = isSuper
     ? "Super Admin Account"
@@ -103,9 +104,7 @@ function StudentHeader({ onOpenSidebar }) {
                 aria-label="เมนูผู้ใช้งาน"
                 aria-expanded={isOpen}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ABD1C6]/40 text-[#004643]">
-                  <LuUser className="h-4 w-4" aria-hidden="true" />
-                </span>
+                <UserAvatar user={user} name={displayName} />
                 <div className="hidden sm:flex flex-col text-left">
                   <span className="text-xs font-bold text-[#26332F] leading-tight truncate max-w-[110px] sm:max-w-[130px]">
                     {displayName}

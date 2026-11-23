@@ -8,14 +8,18 @@ import {
   LuExternalLink,
 } from "react-icons/lu";
 import YouTubePlayer from "../YouTubePlayer";
+import VideoProgressBar from "../VideoProgressBar";
+import { resolveMediaUrl } from "../../../../utils/mediaUrl";
 import CodeBlock from "../CodeBlock";
 
 // ======================================================
 // ContentRenderer Component (ตัวแสดงผลเนื้อหาบทเรียน)
 // รองรับ UAT-029, UAT-034 (Safe YouTube, Raw Code, PDF, Image, Rich Text)
+// วิดีโอ (ข้อ 25): ส่ง videoProgress = { percent, requiredPercent } เพื่อแสดงแถบความคืบหน้า
+//   และ onVideoProgress(ตำแหน่งวินาที, ความยาววินาที) เพื่อบันทึกการดู (เฉพาะผู้เรียน)
 // ======================================================
 
-function ContentRenderer({ content }) {
+function ContentRenderer({ content, videoProgress = null, onVideoProgress }) {
   if (!content) return null;
 
   const { content_type, content_data, caption } = content;
@@ -28,8 +32,24 @@ function ContentRenderer({ content }) {
       (content_data.includes("youtube.com") || content_data.includes("youtu.be")));
 
   if (isYoutube) {
-    return <YouTubePlayer url={content_data} caption={caption} />;
+    return (
+      <div>
+        <YouTubePlayer url={content_data} caption={caption} onProgress={onVideoProgress} />
+        {videoProgress && (
+          <VideoProgressBar
+            percent={videoProgress.percent}
+            requiredPercent={videoProgress.requiredPercent}
+            tone="light"
+          />
+        )}
+      </div>
+    );
   }
+
+  const reportVideo = (e) => {
+    const { currentTime, duration } = e.currentTarget;
+    if (onVideoProgress && duration > 0 && Number.isFinite(duration)) onVideoProgress(currentTime, duration);
+  };
 
   switch (content_type) {
     // ----------------------------------------------------
@@ -58,12 +78,18 @@ function ContentRenderer({ content }) {
       return (
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black shadow-sm p-4 text-center">
           <video
-            src={content_data}
+            src={resolveMediaUrl(content_data)}
             controls
+            onTimeUpdate={onVideoProgress ? reportVideo : undefined}
+            onPause={onVideoProgress ? reportVideo : undefined}
+            onEnded={onVideoProgress ? reportVideo : undefined}
             className="mx-auto max-h-[500px] w-full rounded-lg"
           >
             เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอโดยตรง
           </video>
+          {videoProgress && (
+            <VideoProgressBar percent={videoProgress.percent} requiredPercent={videoProgress.requiredPercent} />
+          )}
           {caption && (
             <p className="mt-2 text-xs text-gray-400 italic flex items-center justify-center gap-1">
               <LuVideo className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />

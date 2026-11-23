@@ -198,6 +198,31 @@ export const classroomService = {
   },
 
   // ====================================================
+  // ความคืบหน้าการเรียน (ข้อ 24, 25) เฉพาะผู้เรียนที่ลงทะเบียนในคอร์ส
+  // ====================================================
+
+  // เปิดบทเรียน: "ยังไม่เรียน" -> "กำลังเรียน" (POST /api/v1/lessons/:id/progress/start)
+  async startLesson(lessonId) {
+    const response = await api.post(`/lessons/${lessonId}/progress/start`);
+    return response.data;
+  },
+
+  // ปุ่ม "เรียนจบแล้ว" (POST /api/v1/lessons/:id/complete)
+  async completeLesson(lessonId) {
+    const response = await api.post(`/lessons/${lessonId}/complete`);
+    return response.data;
+  },
+
+  // บันทึกตำแหน่งการดูวิดีโอ (PUT /api/v1/contents/:id/progress)
+  async saveVideoProgress(contentId, positionSeconds, durationSeconds) {
+    const response = await api.put(`/contents/${contentId}/progress`, {
+      position_seconds: positionSeconds,
+      duration_seconds: durationSeconds,
+    });
+    return response.data;
+  },
+
+  // ====================================================
   // 5. Dashboard Data (Real Database Data 100%)
   // ====================================================
 

@@ -5,6 +5,8 @@ import Button from "../../../../components/common/Button";
 import { getCourseStatus } from "../../utils/courseStatus";
 import CourseManageActions from "../CourseManageActions";
 import ReviewNote from "../ReviewNote";
+import { resolveMediaUrl } from "../../../../utils/mediaUrl";
+import CourseVisibilityBadge from "../CourseVisibilityBadge";
 
 // ======================================================
 // CourseCard Component (การ์ดแสดงคอร์สเรียน)
@@ -52,8 +54,10 @@ function CourseCard({
   const showStatus = manageable || role === "admin";
   const hasManageActions = manageable && (onEdit || onStatusAction || onDelete);
 
-  const [imageError, setImageError] = useState(false);
-  const imageSrc = cover_image || thumbnail_url;
+  // จำว่ารูปไหนโหลดไม่ขึ้น (ไม่ใช่ true/false) พอเปลี่ยนรูปใหม่จะลองโหลดใหม่ ไม่ค้างรูปสำรอง (ข้อ 21)
+  const imageSrc = resolveMediaUrl(cover_image || thumbnail_url);
+  const [failedSrc, setFailedSrc] = useState(null);
+  const imageError = failedSrc === imageSrc;
   const isEnrolledEffective = role === "guest" ? false : is_enrolled;
   const showFallback = !imageSrc || imageError;
 
@@ -73,7 +77,7 @@ function CourseCard({
             src={imageSrc}
             alt={title}
             className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-            onError={() => setImageError(true)}
+            onError={() => setFailedSrc(imageSrc)}
             loading="lazy"
           />
         ) : (
@@ -116,7 +120,8 @@ function CourseCard({
 
         {/* ป้ายสถานะคอร์ส (เฉพาะผู้สอน/แอดมิน) — เดิมเป็นป้าย "เรียนฟรี" ที่ใส่ไว้ตายตัว */}
         {showStatus && (
-          <div className="absolute bottom-3 right-3">
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+            <CourseVisibilityBadge visibility={course.visibility} className="shadow-sm" />
             <span
               className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-sm ${status.className}`}
             >

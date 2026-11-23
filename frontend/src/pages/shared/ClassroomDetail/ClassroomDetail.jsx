@@ -5,25 +5,25 @@ import classroomService from "../../../services/classroomService";
 import useAuthStore from "../../../store/useAuthStore";
 import { IOT_101_COURSE, IOT_101_CHAPTERS } from "../../../data/iot101Data";
 import ClassroomHero from "./components/ClassroomHero";
-import ClassroomActionNotice from "./components/ClassroomActionNotice";
 import IoT101Section from "./components/IoT101Section";
 import ClassroomTabs from "./components/ClassroomTabs";
 import StandardLessonsSection from "./components/StandardLessonsSection";
 import MembersSection from "./components/MembersSection";
-import EditClassroomModal from "./components/EditClassroomModal";
+import CourseFormModal from "../../../features/courses/components/CourseFormModal";
 import AddLessonModal from "./components/AddLessonModal";
 import AddMemberModal from "./components/AddMemberModal";
 import GuestLockModal from "../../../components/GuestLockModal";
 import { confirmDelete } from "../../../store/useConfirmStore";
+import { notify } from "../../../store/useToastStore";
 
 /**
  * ClassroomDetail Page Component (หน้ารายละเอียดห้องเรียน)
  * Modularized Architecture:
  * - ClassroomHero (Information, owner/admin buttons, student join button, guest start learning)
- * - ClassroomActionNotice (Notice banner)
+ * - แจ้งผลการทำงานผ่านแถบมุมขวาบนกลาง (notify)
  * - IoT101Section (When IoT 101 course is viewed)
  * - ClassroomTabs, StandardLessonsSection, MembersSection (When custom course is viewed)
- * - Modals: EditClassroomModal, AddLessonModal, AddMemberModal, GuestLockModal
+ * - Modals: CourseFormModal (ฟอร์มแก้ไขเดียวกับหน้ารายการคอร์ส), AddLessonModal, AddMemberModal, GuestLockModal
  */
 function ClassroomDetail() {
   const { id: classroomId } = useParams();
@@ -43,7 +43,6 @@ function ClassroomDetail() {
   const [activeTab, setActiveTab] = useState("lessons"); // 'lessons' | 'members'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [actionNotice, setActionNotice] = useState(null);
 
   // Guest Lock Modal state
   const [guestModal, setGuestModal] = useState({
@@ -68,8 +67,6 @@ function ClassroomDetail() {
 
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDesc, setEditDesc] = useState("");
 
   const [isAddLessonModalOpen, setIsAddLessonModalOpen] = useState(false);
   const [lessonTitle, setLessonTitle] = useState("");
@@ -135,8 +132,6 @@ function ClassroomDetail() {
     // กรณีเป็นคอร์ส IoT 101 ให้โหลดข้อมูลจาก mock data
     if (isIoT101) {
       setClassroom(IOT_101_COURSE);
-      setEditTitle(IOT_101_COURSE.title);
-      setEditDesc(IOT_101_COURSE.description);
       setLessons([]);
       setMembers([]);
       setLoading(false);
@@ -147,8 +142,6 @@ function ClassroomDetail() {
     try {
       const cData = await classroomService.getClassroom(classroomId);
       setClassroom(cData.classroom);
-      setEditTitle(cData.classroom.title);
-      setEditDesc(cData.classroom.description || "");
 
       // ดึงบทเรียน (อาจจะ error 403 ถ้า student ยังไม่ได้ enroll)
       try {
@@ -180,23 +173,25 @@ function ClassroomDetail() {
   }, [loadClassroomData]);
 
   const showNotice = (type, text) => {
-    setActionNotice({ type, text });
-    setTimeout(() => setActionNotice(null), 3500);
+    notify.show(type, text);
   };
 
   // บันทึกการแก้ไขห้องเรียน
-  const handleUpdateClassroom = async (e) => {
-    e.preventDefault();
+  // แก้ไขคอร์สด้วยฟอร์มเดียวกับหน้ารายการคอร์ส (ชื่อ คำอธิบาย รูปปก การมองเห็น)
+  const [isSavingCourse, setIsSavingCourse] = useState(false);
+  const [courseFormError, setCourseFormError] = useState("");
+  const handleUpdateClassroom = async (payload) => {
+    setIsSavingCourse(true);
+    setCourseFormError("");
     try {
-      await classroomService.updateClassroom(classroomId, {
-        title: editTitle.trim(),
-        description: editDesc.trim() || null,
-      });
+      await classroomService.updateClassroom(classroomId, payload);
       setIsEditModalOpen(false);
       showNotice("success", "แก้ไขข้อมูลคอร์สสำเร็จ");
       loadClassroomData();
     } catch (err) {
-      showNotice("error", err.response?.data?.message || "แก้ไขไม่สำเร็จ");
+      setCourseFormError(err.response?.data?.message || "แก้ไขไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsSavingCourse(false);
     }
   };
 
@@ -406,7 +401,6 @@ function ClassroomDetail() {
       </Link>
 
       {/* กล่องแจ้งเตือนผลลัพธ์ */}
-      <ClassroomActionNotice actionNotice={actionNotice} />
 
       {/* ส่วนหัวของห้องเรียน (Classroom Hero) */}
       <ClassroomHero
@@ -481,14 +475,17 @@ function ClassroomDetail() {
       )}
 
       {/* Modals */}
-      <EditClassroomModal
+      <CourseFormModal
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        editTitle={editTitle}
-        onEditTitleChange={setEditTitle}
-        editDesc={editDesc}
-        onEditDescChange={setEditDesc}
+        mode="edit"
+        course={classroom}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setCourseFormError("");
+        }}
         onSubmit={handleUpdateClassroom}
+        isSubmitting={isSavingCourse}
+        error={courseFormError}
       />
 
       <AddLessonModal

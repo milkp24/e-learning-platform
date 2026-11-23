@@ -1,4 +1,5 @@
 import { LuX, LuShield, LuIdCard, LuCheck, LuPencil, LuUser, LuMail, LuBuilding, LuBriefcase } from "react-icons/lu";
+import { resolveMediaUrl } from "../../../../utils/mediaUrl";
 
 /**
  * UserDetailModal Component
@@ -64,7 +65,7 @@ function UserDetailModal({ isOpen, onClose, user, onOpenEdit, canEditUser }) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E9E7] p-4.5">
             <div className="flex items-center gap-4">
               <img
-                src={profile.profile_image || "/images/default-avatar.svg"}
+                src={resolveMediaUrl(profile.profile_image) || "/images/default-avatar.svg"}
                 alt="User avatar"
                 className="h-14 w-14 rounded-full object-cover border-2 border-[#ABD1C6] bg-white shadow-2xs shrink-0"
                 onError={(e) => {

@@ -8,6 +8,7 @@ from app.models.classroom import (
     Classroom, ClassroomMember, Lesson, Chapter, Episode, Content, Media, Journal,
     COURSE_STATUSES, COURSE_STATUS_ALIASES, COURSE_STATUS_ACTIVE, COURSE_STATUS_DRAFT,
     COURSE_STATUS_PENDING, COURSE_STATUS_ARCHIVED,
+    COURSE_VISIBILITIES, COURSE_VISIBILITY_PUBLIC, COURSE_VISIBILITY_MEMBERS, COURSE_VISIBILITY_HIDDEN,
 )
 
 # สิทธิ์ใน Permission Matrix ที่ใช้กับสถานะคอร์ส
@@ -25,6 +26,7 @@ from app.models.streaming import LiveSchedule, LiveSession
 from app.models.virtuallab import LabAssignment
 from app.models.ai import AICodeRequest
 from app.utils.validators import validate_title
+from app.services.media_service import MediaService, MediaServiceError
 
 
 class ClassroomServiceError(Exception):
@@ -61,17 +63,40 @@ class ClassroomService:
     @classmethod
     def can_view_classroom(cls, classroom: Classroom | None, user: User | None) -> bool:
         """ตรวจสอบสิทธิ์การมองเห็นคอร์ส (ข้อ 1, 17)
-        - คอร์สที่เผยแพร่แล้ว (active): ทุกคนเห็น รวมถึง Guest
-        - คอร์สฉบับร่าง (draft): เห็นเฉพาะผู้ที่จัดการคอร์สได้
-          และผู้เรียนที่ลงทะเบียนไว้ก่อนแล้ว (เพื่อให้เรียนต่อได้เมื่อคอร์สถูกยกเลิกเผยแพร่)
+        - เผยแพร่แล้ว + สาธารณะ: ทุกคนเห็น รวมถึง Guest
+        - เผยแพร่แล้ว + จำกัดสิทธิ์: เฉพาะผู้ที่เข้าสู่ระบบแล้ว
+        - เผยแพร่แล้ว + ซ่อน / ยังไม่เผยแพร่: เฉพาะผู้ที่จัดการคอร์สได้
+          และผู้เรียนที่ลงทะเบียนไว้แล้ว (เรียนต่อได้แม้คอร์สถูกซ่อนหรือยกเลิกเผยแพร่)
         """
         if not classroom:
             return False
         if classroom.status == COURSE_STATUS_ACTIVE:
-            return True
+            visibility = classroom.visibility or COURSE_VISIBILITY_PUBLIC
+            if visibility == COURSE_VISIBILITY_PUBLIC:
+                return True
+            if visibility == COURSE_VISIBILITY_MEMBERS and user:
+                return True
         if cls.can_manage_classroom(classroom, user):
             return True
         return bool(user and classroom.has_member(user.user_id))
+
+    @staticmethod
+    def normalize_visibility(raw) -> str:
+        """ข้อ 1: ตรวจค่าการมองเห็นคอร์สก่อนบันทึก"""
+        value = str(raw or "").strip().lower()
+        if value not in COURSE_VISIBILITIES:
+            raise ClassroomServiceError(
+                "การมองเห็นคอร์สไม่ถูกต้อง เลือกได้: สาธารณะ, จำกัดสิทธิ์ หรือซ่อน", 400, "Validation Error"
+            )
+        return value
+
+    @staticmethod
+    def clean_thumbnail(value) -> str | None:
+        """ข้อ 22: รูปปกเก็บเป็นที่อยู่ไฟล์/ลิงก์เท่านั้น ไม่รับ Base64"""
+        try:
+            return MediaService.clean_image_url(value, "รูปปกคอร์ส")
+        except MediaServiceError as e:
+            raise ClassroomServiceError(e.message, 400, "Validation Error")
 
     @staticmethod
     def normalize_status(raw_status) -> str:
@@ -290,7 +315,7 @@ class ClassroomService:
     def list_classrooms(cls, current_user: User | None, status_filter: str | None = None) -> dict:
         """
         แสดงรายการคอร์สเรียนทั้งหมดในระบบ (Course Catalog) (UAT-020, UAT-026)
-        - Guest และผู้เรียน: เห็นเฉพาะคอร์สที่เผยแพร่แล้ว (active)
+        - Guest: เห็นเฉพาะคอร์สที่เผยแพร่แล้วแบบสาธารณะ / ผู้เข้าสู่ระบบเห็นแบบจำกัดสิทธิ์ด้วย (ข้อ 1)
           + คอร์สที่ตัวเองลงทะเบียนไว้ แม้ถูกยกเลิกเผยแพร่หรือเก็บถาวรภายหลัง
           (ให้ "คอร์สเรียนของฉัน" ตรงกับ "คอร์สเรียนที่คุณกำลังเรียน" ในหน้าหลัก และตรงกับ can_view_classroom)
         - Instructor: เห็นคอร์สที่เผยแพร่แล้ว + คอร์สของตัวเองทุกสถานะ (ไม่เห็นฉบับร่างของคนอื่น)
@@ -303,7 +328,10 @@ class ClassroomService:
 
         is_admin = bool(current_user and (current_user.has_role("admin") or current_user.has_role("super_admin")))
         if not is_admin:
-            visible = Classroom.status == COURSE_STATUS_ACTIVE
+            # ข้อ 1: Guest เห็นเฉพาะคอร์สเผยแพร่แล้วแบบสาธารณะ
+            # ผู้ที่เข้าสู่ระบบเห็นแบบจำกัดสิทธิ์ด้วย ส่วนแบบซ่อนไม่ขึ้นในรายการ (ยกเว้นคอร์สของตัวเอง/ที่ลงทะเบียน)
+            shown = [COURSE_VISIBILITY_PUBLIC] + ([COURSE_VISIBILITY_MEMBERS] if current_user else [])
+            visible = (Classroom.status == COURSE_STATUS_ACTIVE) & Classroom.visibility.in_(shown)
             if current_user and current_user.has_role("instructor"):
                 visible = visible | (Classroom.instructor_id == current_user.user_id)
             if current_user:
@@ -390,7 +418,7 @@ class ClassroomService:
             raise ClassroomServiceError(title_err, 400, "Validation Error")
 
         description = data.get("description")
-        thumbnail_url = data.get("thumbnail_url")
+        thumbnail_url = cls.clean_thumbnail(data.get("thumbnail_url"))
         # คอร์สใหม่เริ่มเป็นฉบับร่างเสมอ ถ้าขอสถานะอื่นจะเปลี่ยนผ่าน apply_status_change
         # (ผู้ไม่มีสิทธิ์ courses.publish ที่ขอเผยแพร่ จะกลายเป็นรอตรวจสอบ)
         requested_status = cls.normalize_status(data.get("status") or COURSE_STATUS_DRAFT)
@@ -409,7 +437,8 @@ class ClassroomService:
             instructor_id=instructor_id,
             title=title.strip(),
             description=description.strip() if description else None,
-            thumbnail_url=thumbnail_url.strip() if thumbnail_url else None,
+            thumbnail_url=thumbnail_url,
+            visibility=cls.normalize_visibility(data.get("visibility") or COURSE_VISIBILITY_PUBLIC),
             status=COURSE_STATUS_DRAFT
         )
 
@@ -500,7 +529,10 @@ class ClassroomService:
             classroom.description = data.get("description")
 
         if "thumbnail_url" in data:
-            classroom.thumbnail_url = data.get("thumbnail_url")
+            classroom.thumbnail_url = cls.clean_thumbnail(data.get("thumbnail_url"))
+
+        if "visibility" in data:
+            classroom.visibility = cls.normalize_visibility(data.get("visibility"))
 
         message = "Classroom updated successfully."
         if "status" in data:
@@ -711,6 +743,11 @@ class ClassroomService:
 
         if classroom.status != COURSE_STATUS_ACTIVE:
             raise ClassroomServiceError("คอร์สนี้ยังไม่เปิดให้ลงทะเบียน", 403, "Forbidden")
+        # คอร์สซ่อน: ลงทะเบียนเองไม่ได้ ต้องให้ผู้สอนหรือ Admin เพิ่มเข้าคอร์ส
+        if (classroom.visibility or COURSE_VISIBILITY_PUBLIC) == COURSE_VISIBILITY_HIDDEN:
+            raise ClassroomServiceError(
+                "คอร์สนี้เปิดเฉพาะผู้เรียนที่ได้รับเชิญ กรุณาติดต่อผู้สอนเพื่อขอเข้าร่วม", 403, "Forbidden"
+            )
 
         if user.has_role("instructor") or user.has_role("admin") or not user.has_role("student"):
             raise ClassroomServiceError(
@@ -939,11 +976,13 @@ class ClassroomService:
         """
         ข้อมูลสถิติภาพรวมแพลตฟอร์มสำหรับ Public / Guest Home (ดึงจริงจาก Database 100%)
         """
-        active_courses_count = Classroom.query.filter_by(status="active").count()
+        # ตัวเลขหน้าแรกสำหรับ Guest นับเฉพาะคอร์สที่ Guest เห็นได้ (ข้อ 1)
+        public_course = (Classroom.status == COURSE_STATUS_ACTIVE) & (Classroom.visibility == COURSE_VISIBILITY_PUBLIC)
+        active_courses_count = Classroom.query.filter(public_course).count()
         total_lessons_count = (
             db.session.query(db.func.count(Lesson.lesson_id))
             .join(Classroom, Lesson.classroom_id == Classroom.classroom_id)
-            .filter(Classroom.status == "active")
+            .filter(public_course)
             .scalar() or 0
         )
         from app.models.role import Role

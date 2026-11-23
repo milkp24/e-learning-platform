@@ -4,6 +4,7 @@ import {
   LuCheck,
   LuLock,
 } from "react-icons/lu";
+import { resolveMediaUrl } from "../../../../utils/mediaUrl";
 
 // ป้ายแสดงว่าฟิลด์นี้เป็นแบบอ่านอย่างเดียว (FB-08)
 function ReadOnlyBadge() {
@@ -69,7 +70,7 @@ function AccountDetailsSection({ user, displayName }) {
       {/* 1. สรุปภาพรวมโปรไฟล์และรูปภาพ */}
       <div className="flex items-center gap-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E9E7] p-4">
         <img
-          src={profile.profile_image || "/images/default-avatar.svg"}
+          src={resolveMediaUrl(profile.profile_image) || "/images/default-avatar.svg"}
           alt="User avatar"
           className="h-16 w-16 rounded-full object-cover border-2 border-[#ABD1C6] bg-white shadow-2xs shrink-0"
           onError={(e) => {

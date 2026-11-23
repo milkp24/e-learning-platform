@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   LuUpload,
   LuTrash2,
@@ -7,17 +7,20 @@ import {
   LuCheck,
   LuInfo,
 } from "react-icons/lu";
+import { IMAGE_ACCEPT, mediaService, validateImageFile } from "../../../../services/mediaService";
+import { resolveMediaUrl } from "../../../../utils/mediaUrl";
+import { notify } from "../../../../store/useToastStore";
 
 /**
  * EditProfileSection Component
  * จัดการการแก้ไขข้อมูลที่ Backend รองรับจริง:
  * 1. display_name (ชื่อแสดงผล)
- * 2. profile_image (รูปภาพโปรไฟล์ - รองรับ File Picker จากเครื่องขนาด <= 2MB พร้อม Live Preview)
+ * 2. profile_image (รูปภาพโปรไฟล์) ข้อ 34: เลือกรูปแล้วอัปโหลดขึ้นเซิร์ฟเวอร์ทันที
+ *    เก็บแค่ที่อยู่ไฟล์ (ไม่เก็บ Base64) รูปจะไปแสดงที่ปุ่มโปรไฟล์มุมขวาบนทุกหน้า
  *
  * หมายเหตุความโปร่งใสทางสถาปัตยกรรม:
  * - ข้อมูลจากการลงทะเบียน (first_name, last_name, occupation, institution_name, institution_email)
  *   แสดงเป็นข้อมูลยืนยันตัวตนทางการ ไม่ส่งไปยัง PUT API ตามข้อกำหนด
- * - บันทึกภาพลงฐานข้อมูลผ่านฟิลด์ profile_image (Backend ยังไม่มี Multipart Storage บนเซิร์ฟเวอร์)
  */
 function EditProfileSection({
   user,
@@ -32,9 +35,17 @@ function EditProfileSection({
   const [selectedFileMeta, setSelectedFileMeta] = useState(null);
   const [fileError, setFileError] = useState("");
   const fileInputRef = useRef(null);
+  const [localPreview, setLocalPreview] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadSeq = useRef(0);
 
-  const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-  const maxSizeBytes = 2 * 1024 * 1024; // 2 MB
+  useEffect(() => {
+    if (!localPreview) return undefined;
+    return () => URL.revokeObjectURL(localPreview);
+  }, [localPreview]);
+
+  const previewSrc = localPreview || resolveMediaUrl(profileImage);
+  const isUploadedFile = profileImage.startsWith("/api/") || profileImage.startsWith("data:");
 
   const formatBytes = (bytes) => {
     if (!bytes) return "0 KB";
@@ -44,42 +55,44 @@ function EditProfileSection({
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = ""; // เลือกไฟล์เดิมซ้ำได้
     if (!file) return;
 
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setFileError(invalid);
+      return;
+    }
     setFileError("");
+    setLocalPreview(URL.createObjectURL(file));
+    setSelectedFileMeta({ name: file.name, size: formatBytes(file.size), type: file.type });
 
-    // 1. ตรวจสอบ MIME Type
-    if (!allowedTypes.includes(file.type.toLowerCase())) {
-      setFileError("ประเภทไฟล์ไม่ถูกต้อง รองรับเฉพาะ JPG, JPEG, PNG และ WebP เท่านั้น");
-      return;
+    const seq = ++uploadSeq.current;
+    setIsUploading(true);
+    const toastId = notify.loading("กำลังอัปโหลดรูปโปรไฟล์...");
+    try {
+      const res = await mediaService.uploadImage(file);
+      if (seq !== uploadSeq.current) return notify.dismiss(toastId);
+      onProfileImageChange(res.relative_url || res.file_url);
+      notify.update(toastId, { type: "success", text: "อัปโหลดรูปแล้ว กด \"บันทึกการเปลี่ยนแปลง\" เพื่อใช้รูปนี้" });
+    } catch (err) {
+      if (seq !== uploadSeq.current) return notify.dismiss(toastId);
+      setLocalPreview("");
+      setSelectedFileMeta(null);
+      const msg = err.response?.data?.message || "อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
+      setFileError(msg);
+      notify.update(toastId, { type: "error", text: msg });
+    } finally {
+      if (seq === uploadSeq.current) setIsUploading(false);
     }
-
-    // 2. ตรวจสอบขนาดไฟล์ (<= 2 MB)
-    if (file.size > maxSizeBytes) {
-      setFileError(`ขนาดไฟล์เกินกำหนด (สูงสุด 2 MB) ไฟล์ของคุณมีขนาด ${formatBytes(file.size)}`);
-      return;
-    }
-
-    // 3. อ่านไฟล์เป็น Data URL สำหรับพรีวิวและส่งผ่าน Backend API
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target.result;
-      onProfileImageChange(dataUrl);
-      setSelectedFileMeta({
-        name: file.name,
-        size: formatBytes(file.size),
-        type: file.type,
-      });
-    };
-    reader.onerror = () => {
-      setFileError("เกิดข้อผิดพลาดในการอ่านไฟล์รูปภาพ");
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleRemoveImage = () => {
+    uploadSeq.current += 1;
+    setIsUploading(false);
+    setLocalPreview("");
     onProfileImageChange("");
     setSelectedFileMeta(null);
     setFileError("");
@@ -142,7 +155,7 @@ function EditProfileSection({
           <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-[#FAFAFA] rounded-2xl border border-[#E5E9E7]">
             <div className="relative shrink-0">
               <img
-                src={profileImage || "/images/default-avatar.svg"}
+                src={previewSrc || "/images/default-avatar.svg"}
                 alt="Profile preview"
                 className="h-20 w-20 rounded-full object-cover border-2 border-[#ABD1C6] bg-white shadow-2xs"
                 onError={(e) => {
@@ -169,12 +182,19 @@ function EditProfileSection({
                     ไฟล์ที่เลือก: {selectedFileMeta.name}
                   </p>
                   <p className="text-[11px] text-[#6B7773]">
-                    ขนาด: <span className="font-semibold text-emerald-700">{selectedFileMeta.size}</span> (ผ่านเกณฑ์ไม่เกิน 2 MB)
+                    ขนาด: <span className="font-semibold text-emerald-700">{selectedFileMeta.size}</span>
                   </p>
-                  <div className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
-                    <LuCheck className="h-3 w-3 text-emerald-600" />
-                    <span>พร้อมสำหรับบันทึก</span>
-                  </div>
+                  {isUploading ? (
+                    <div className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-[#26332F] border border-gray-200">
+                      <LuRefreshCw className="h-3 w-3 animate-spin" />
+                      <span>กำลังอัปโหลด...</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                      <LuCheck className="h-3 w-3 text-emerald-600" />
+                      <span>อัปโหลดแล้ว กดบันทึกเพื่อใช้รูปนี้</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -182,7 +202,7 @@ function EditProfileSection({
                     {profileImage ? "ภาพโปรไฟล์ปัจจุบัน" : "ยังไม่ได้เลือกรูปภาพ"}
                   </p>
                   <p className="text-[11px] text-[#6B7773]">
-                    รองรับไฟล์ JPG, JPEG, PNG, WebP ขนาดไม่เกิน 2 MB
+                    รองรับไฟล์ PNG, JPG หรือ WEBP ขนาดไม่เกิน 5 MB
                   </p>
                 </div>
               )}
@@ -194,7 +214,7 @@ function EditProfileSection({
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                      accept={IMAGE_ACCEPT}
                       onChange={handleFileChange}
                       className="hidden"
                       id="profile-image-upload"
@@ -236,8 +256,14 @@ function EditProfileSection({
             <div className="space-y-1 animate-fadeIn">
               <input
                 type="text"
-                value={profileImage}
-                onChange={(e) => onProfileImageChange(e.target.value)}
+                value={isUploadedFile ? "" : profileImage}
+                onChange={(e) => {
+                  uploadSeq.current += 1;
+                  setIsUploading(false);
+                  setLocalPreview("");
+                  setSelectedFileMeta(null);
+                  onProfileImageChange(e.target.value);
+                }}
                 placeholder="https://example.com/avatar.jpg"
                 className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-xs outline-none transition focus:border-[#ABD1C6] focus:ring-2 focus:ring-[#ABD1C6]/30 font-mono"
               />
@@ -247,12 +273,6 @@ function EditProfileSection({
             </div>
           )}
 
-          <div className="flex items-start gap-1.5 text-[11px] text-[#6B7773] bg-[#FAFAFA] rounded-xl p-2.5 border border-gray-100">
-            <LuInfo className="h-4 w-4 text-[#004643] shrink-0 mt-0.5" />
-            <span>
-              <strong>หมายเหตุสถาปัตยกรรม:</strong> ภาพจะถูกบันทึกผ่าน API จริง (ฟิลด์ <code>profile_image</code>) ในฐานข้อมูล PostgreSQL โดยระบบปัจจุบันยังไม่มี Multipart Storage บนเซิร์ฟเวอร์
-            </span>
-          </div>
         </div>
 
         {/* ==================================================== */}
@@ -312,7 +332,7 @@ function EditProfileSection({
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isUploading}
             className="inline-flex items-center gap-2 rounded-xl bg-[#ABD1C6] px-6 py-2.5 text-sm font-bold text-[#20302C] hover:bg-[#9bc3b7] active:scale-98 transition disabled:opacity-50 cursor-pointer shadow-xs"
           >
             {isLoading && <LuRefreshCw className="h-4 w-4 animate-spin" />}

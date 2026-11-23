@@ -5,6 +5,7 @@ function JournalList({
   journals,
   isLoading,
   error,
+  hasFilter = false,
   onOpenCreateModal,
   onEdit,
   onDelete,
@@ -21,6 +22,16 @@ function JournalList({
     return (
       <div className="rounded-xl bg-red-50 p-6 text-center text-red-600 border border-red-200">
         {error}
+      </div>
+    );
+  }
+
+  if (journals.length === 0 && hasFilter) {
+    return (
+      <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-12 text-center">
+        <LuFileText className="mx-auto h-10 w-10 text-gray-400" aria-hidden="true" />
+        <h3 className="mt-3 text-base font-bold text-gray-800">ไม่พบบันทึกที่ตรงกับตัวกรอง</h3>
+        <p className="mt-1 text-sm text-gray-500">ลองเปลี่ยนคอร์ส บทเรียน หรือคำค้นหา</p>
       </div>
     );
   }

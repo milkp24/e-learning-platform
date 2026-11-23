@@ -5,6 +5,8 @@ import TimeoutModal from "./features/auth/components/TimeoutModal";
 import RoleUpgradeNotification from "./components/common/RoleUpgradeNotification";
 // กล่องยืนยันกลาง (ใช้แทน window.confirm)
 import GlobalConfirmDialog from "./components/common/GlobalConfirmDialog";
+// แถบแจ้งผลการทำงานมุมขวาบน (ใช้ร่วมกันทุกหน้า)
+import GlobalToaster from "./components/common/GlobalToaster";
 // Hook ตรวจจับ Inactivity useIdleTimeout
 import useIdleTimeout from "./features/auth/hooks/useIdleTimeout";
 import useAuthStore from "./store/useAuthStore";
@@ -62,6 +64,7 @@ function App() {
 
       {/* กล่องยืนยันก่อนลบ / ทำรายการสำคัญ */}
       <GlobalConfirmDialog />
+      <GlobalToaster />
 
       {/* เส้นทางทั้งหมดของระบบ */}
       <AppRoutes />

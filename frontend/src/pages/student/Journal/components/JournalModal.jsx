@@ -9,6 +9,9 @@ function JournalModal({
   courseId,
   setCourseId,
   courses,
+  lessonId,
+  setLessonId,
+  lessons = [],
   isSubmitting,
   formError,
   onSubmit,
@@ -56,6 +59,26 @@ function JournalModal({
               {courses.map((c) => (
                 <option key={c.classroom_id} value={c.classroom_id}>
                   {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ข้อ 27: ผูกบันทึกกับบทเรียน หน้าคอร์สจะแสดงว่าบทนี้มีบันทึก */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+              บทเรียน (ถ้ามี)
+            </label>
+            <select
+              value={lessonId}
+              onChange={(e) => setLessonId(e.target.value)}
+              disabled={!courseId}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-[#004643] focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
+            >
+              <option value="">{courseId ? "-- ไม่ระบุบทเรียน --" : "เลือกคอร์สก่อน"}</option>
+              {lessons.map((l) => (
+                <option key={l.lesson_id} value={l.lesson_id}>
+                  {l.title}
                 </option>
               ))}
             </select>

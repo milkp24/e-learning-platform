@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, send_from_directory
+from flask_jwt_extended import jwt_required
 from app.utils.decorators import roles_required, get_current_user
 from app.services.media_service import MediaService, MediaServiceError
 
@@ -35,6 +36,26 @@ def upload_file():
 
     try:
         res, status_code = MediaService.save_uploaded_file(file, caller, request.host_url)
+        return jsonify(res), status_code
+    except MediaServiceError as e:
+        return jsonify({"error": e.error, "message": e.message}), e.status_code
+
+
+@media_bp.route("/images", methods=["POST"])
+@jwt_required()
+def upload_image():
+    """
+    อัปโหลดรูปภาพ (รูปปกคอร์ส, รูปโปรไฟล์) ข้อ 22, 23
+    - ผู้ใช้ทุกบทบาทที่เข้าสู่ระบบ (รูปโปรไฟล์ของผู้เรียนก็ใช้ endpoint นี้)
+    - Multipart/Form-Data คีย์ 'file'
+    - คืน relative_url ให้นำไปบันทึก (ไม่ผูกกับชื่อโฮสต์ ย้ายเซิร์ฟเวอร์แล้วรูปไม่หาย)
+    """
+    caller = get_current_user()
+    if not caller or caller.status != "active":
+        return jsonify({"error": "Unauthorized", "message": "กรุณาเข้าสู่ระบบก่อนอัปโหลดรูปภาพ"}), 401
+    file = request.files.get("file")
+    try:
+        res, status_code = MediaService.save_image(file, caller, request.host_url)
         return jsonify(res), status_code
     except MediaServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code

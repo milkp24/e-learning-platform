@@ -5,6 +5,7 @@ import ProfileStatusAlert from "./components/ProfileStatusAlert";
 import AccountDetailsSection from "./components/AccountDetailsSection";
 import EditProfileSection from "./components/EditProfileSection";
 import ChangePasswordSection from "./components/ChangePasswordSection";
+import { notify } from "../../../store/useToastStore";
 
 /**
  * Profile Page Component (หน้าโปรไฟล์ผู้ใช้งาน)
@@ -61,7 +62,7 @@ function Profile() {
     });
 
     if (result.success) {
-      setStatusMessage({ type: "success", text: "อัปเดตข้อมูลโปรไฟล์เรียบร้อยแล้ว!" });
+      notify.success("อัปเดตข้อมูลโปรไฟล์เรียบร้อยแล้ว");
       fetchCurrentUser(); // ดึงข้อมูลล่าสุดมาทบทวนอีกครั้ง
     } else {
       setStatusMessage({ type: "error", text: result.error });
