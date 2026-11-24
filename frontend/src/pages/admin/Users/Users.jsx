@@ -11,6 +11,8 @@ import UserDetailModal from "./components/UserDetailModal";
 import EditUserModal from "./components/EditUserModal";
 import CreateUserModal from "./components/CreateUserModal";
 import DeleteUserConfirmModal from "./components/DeleteUserConfirmModal";
+import SetPasswordModal from "./components/SetPasswordModal";
+import { notify } from "../../../store/useToastStore";
 import useUrlParam from "../../../hooks/useUrlParam";
 
 /**
@@ -193,6 +195,9 @@ function Users() {
     fetchUsers();
   };
 
+  // ข้อ 8: ตั้งรหัสผ่านใหม่ (เฉพาะ Super Admin)
+  const [passwordTarget, setPasswordTarget] = useState(null);
+
   const handleOpenDeleteModal = (user) => {
     if (!canDeleteUser) {
       alert("คุณไม่มีสิทธิ์ในการลบบัญชีผู้ใช้ (ต้องการสิทธิ์: users.delete)");
@@ -258,6 +263,7 @@ function Users() {
           onOpenDetailModal={openDetailModal}
           onOpenEditModal={openEditModal}
           onOpenDeleteModal={handleOpenDeleteModal}
+          onOpenPasswordModal={setPasswordTarget}
           canEditUser={canEditUser}
           canDeleteUser={canDeleteUser}
           currentUserId={currentUser?.user_id || currentUser?.id}
@@ -284,6 +290,7 @@ function Users() {
         roleModalError={roleModalError}
         isSubmittingRole={isSubmittingRole}
         onSaveRoles={handleSaveRoles}
+        isSuperAdmin={isSuperAdmin()}
       />
 
       {/* 5. User Detail Modal */}
@@ -301,6 +308,7 @@ function Users() {
         onClose={() => setIsEditModalOpen(false)}
         user={editingUser}
         onUserUpdated={handleUserUpdated}
+        isSuperAdmin={isSuperAdmin()}
       />
 
       {/* 7. Create User Modal */}
@@ -309,6 +317,14 @@ function Users() {
         onClose={() => setIsCreateModalOpen(false)}
         onUserCreated={handleUserCreated}
         isSuperAdmin={isSuperAdmin()}
+      />
+
+      {/* 7.1 Set Password Modal (ข้อ 8) */}
+      <SetPasswordModal
+        isOpen={Boolean(passwordTarget)}
+        onClose={() => setPasswordTarget(null)}
+        user={passwordTarget}
+        onPasswordSet={(message) => notify.show("success", message)}
       />
 
       {/* 8. Delete User Confirm Modal */}

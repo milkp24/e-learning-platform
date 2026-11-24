@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { LuX, LuGraduationCap, LuTriangleAlert as LuAlertTriangle, LuCheck } from "react-icons/lu";
+import { academicYear, firstError, optionalText, requiredText } from "../../../../utils/formValidation";
 
 /**
  * EditClassroomModal Component
@@ -38,8 +39,14 @@ function EditClassroomModal({ isOpen, onClose, classroom, schoolName, onSubmit }
   const handleSubmit = async (e) => {
     e.preventDefault();
     const name = formData.classroom_name.trim();
-    if (!name) {
-      setError("กรุณากรอกชื่อห้องเรียน");
+    // ข้อ 37: ตรวจข้อมูลก่อนส่ง (กติกาเดียวกับ Backend)
+    const invalid = firstError(
+      requiredText(name, "ชื่อห้องเรียน", { max: 100 }),
+      optionalText(formData.grade_level, "ระดับชั้น", 50),
+      academicYear(formData.academic_year)
+    );
+    if (invalid) {
+      setError(invalid);
       return;
     }
 

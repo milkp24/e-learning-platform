@@ -139,7 +139,7 @@ def test_suite():
 
     # Create Course (Classroom)
     res_course = client.post("/api/v1/classrooms", headers=inst_headers, json={
-        "title": "Fullstack Web Development",
+        "title": f"Fullstack Web Development {uuid.uuid4().hex[:6]}",
         "description": "Comprehensive fullstack course with React and Flask",
         "thumbnail_url": "https://example.com/thumb.jpg",
         "status": "active"

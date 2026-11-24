@@ -1,4 +1,6 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, Response, request, jsonify
+from app.extensions import db
+from app.models.admin import AuditLog
 from app.utils.decorators import roles_required, get_current_user
 from app.services.user_service import UserService, UserServiceError
 from app.services.settings_service import SettingsService, SettingsServiceError
@@ -128,6 +130,23 @@ def update_user_account_and_profile(user_id):
         return jsonify({"error": e.error, "message": e.message}), e.status_code
 
 
+@admin_bp.route("/admin/users/<user_id>/password", methods=["PUT"])
+@roles_required("admin")
+def set_user_password(user_id):
+    """Super Admin ตั้งรหัสผ่านใหม่ให้ผู้อื่นโดยไม่ต้องรู้รหัสเดิม (ข้อ 8)
+
+    เปิดให้ Admin เรียกถึง Service ได้ เพื่อให้ความพยายามของ Admin ถูกบันทึก Audit Log (DENIED)
+    การตรวจสิทธิ์ Super Admin ทำใน UserService.set_user_password
+    """
+    caller = get_current_user()
+    data = request.get_json(silent=True)
+    try:
+        res = UserService.set_user_password(user_id, caller, data, remote_addr=request.remote_addr)
+        return jsonify(res), 200
+    except UserServiceError as e:
+        return jsonify({"error": e.error, "message": e.message}), e.status_code
+
+
 # =====================================================================
 # 2. Staff Management Endpoints (Delegated to UserService)
 # =====================================================================
@@ -224,10 +243,62 @@ def get_usage_overview():
     caller = get_current_user()
     date_range = request.args.get("range", "7d")
     try:
-        res = AnalyticsService.get_usage_overview(caller, date_range=date_range)
+        res = AnalyticsService.get_usage_overview(
+            caller,
+            date_range=date_range,
+            start=request.args.get("start"),
+            end=request.args.get("end"),
+        )
         return jsonify(res), 200
     except AnalyticsServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
+
+
+# =====================================================================
+# 4.1 Reports (ข้อ 32): รายงานจากข้อมูลจริง ตามช่วงวันที่ และส่งออก CSV
+# =====================================================================
+
+@admin_bp.route("/admin/reports/summary", methods=["GET"])
+@roles_required("admin")
+def get_reports_summary():
+    """สรุปรายงาน: ตัวชี้วัด ข้อมูลรายวัน และผลรายคอร์ส ตามช่วงวันที่"""
+    from app.services.reports_service import ReportsService, ReportsServiceError, parse_date_range
+    try:
+        dr = parse_date_range(request.args.get("range"), request.args.get("start"), request.args.get("end"))
+        return jsonify(ReportsService.summary(dr)), 200
+    except ReportsServiceError as e:
+        return jsonify({"error": e.error, "message": e.message}), e.status_code
+
+
+@admin_bp.route("/admin/reports/export", methods=["GET"])
+@roles_required("admin")
+def export_reports():
+    """ส่งออกรายงานเป็นไฟล์ CSV (PDF สร้างจากหน้ารายงานด้วยการพิมพ์ของเบราว์เซอร์)"""
+    from app.services.reports_service import ReportsService, ReportsServiceError, parse_date_range
+    fmt = (request.args.get("format") or "csv").lower()
+    if fmt != "csv":
+        return jsonify({"error": "Validation Error", "message": "รองรับการส่งออกเป็น CSV เท่านั้น"}), 400
+    try:
+        dr = parse_date_range(request.args.get("range"), request.args.get("start"), request.args.get("end"))
+    except ReportsServiceError as e:
+        return jsonify({"error": e.error, "message": e.message}), e.status_code
+
+    caller = get_current_user()
+    db.session.add(AuditLog(
+        user_id=caller.user_id if caller else None,
+        action="REPORT_EXPORTED",
+        entity_type="report",
+        details={"format": "csv", "start": dr.start.isoformat(), "end": dr.end.isoformat()},
+        ip_address=request.remote_addr,
+    ))
+    db.session.commit()
+
+    filename = f"elearning-report_{dr.start.isoformat()}_{dr.end.isoformat()}.csv"
+    return Response(
+        ReportsService.export_csv(dr),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # =====================================================================

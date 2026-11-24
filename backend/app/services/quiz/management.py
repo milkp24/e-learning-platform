@@ -12,6 +12,7 @@ from app.models.quiz import (
 from app.models.user import User
 from app.models.classroom import Classroom, ClassroomMember
 from app.services.quiz.timing import compute_time_difference_seconds
+from app.utils.validators import clean_optional_text, clean_required_text, parse_optional_number
 
 
 # =====================================================================
@@ -120,6 +121,11 @@ def list_quizzes_service(
     """
     query = Quiz.query
     if course_id:
+        # ข้อ 14: ระบุคอร์สมาเอง ต้องเป็นคอร์สที่ผู้ใช้มองเห็นได้ ไม่อย่างนั้นได้รายการว่าง
+        from app.services.classroom_service import ClassroomService
+        classroom = db.session.get(Classroom, course_id)
+        if not classroom or not ClassroomService.can_view_classroom(classroom, user):
+            return []
         query = query.filter_by(course_id=course_id)
     elif not (user.has_role("admin") or user.has_role("super_admin")):
         if user.has_role("instructor"):
@@ -149,8 +155,10 @@ def list_classroom_quizzes_service(
     แสดงรายการแบบทดสอบทั้งหมดในคอร์สเรียนที่ระบุ
     """
     classroom = db.session.get(Classroom, classroom_id)
-    if not classroom:
-        return None, "Classroom not found.", 404
+    # ข้อ 14: คอร์สที่ผู้ใช้มองไม่เห็น (เช่นฉบับร่างของผู้สอนคนอื่น) ตอบ 404 เหมือนไม่มีคอร์สนี้
+    from app.services.classroom_service import ClassroomService
+    if not classroom or not ClassroomService.can_view_classroom(classroom, user):
+        return None, "ไม่พบคอร์สเรียน", 404
 
     quizzes = Quiz.query.filter_by(course_id=classroom_id).order_by(Quiz.created_at.desc()).all()
     results = []
@@ -185,16 +193,21 @@ def create_quiz_service(
     if not (is_owner or is_admin):
         return None, "Access denied: you are not the instructor of this course.", 403
 
-    title = data.get("title")
-    if not title or not isinstance(title, str) or not title.strip():
-        return None, "Quiz title is required.", 400
+    ok, title, message = clean_required_text(data.get("title"), "ชื่อแบบทดสอบ", 255)
+    if not ok:
+        return None, message, 400
+    ok, description, message = clean_optional_text(data.get("description"), "คำอธิบาย", 5000)
+    if not ok:
+        return None, message, 400
+    conditions, message = _parse_quiz_conditions(data)
+    if message:
+        return None, message, 400
 
-    description = data.get("description")
     new_quiz = Quiz(
         course_id=classroom_id,
         lesson_id=lesson_id,
-        title=title.strip(),
-        description=description.strip() if description else None,
+        title=title,
+        description=description,
     )
 
     try:
@@ -203,9 +216,9 @@ def create_quiz_service(
 
         condition = QuizCondition(
             quiz_id=new_quiz.quiz_id,
-            max_attempts=int(data.get("max_attempts")) if data.get("max_attempts") is not None and str(data.get("max_attempts")).strip() != "" else None,
-            time_limit_minutes=int(data.get("time_limit_minutes")) if data.get("time_limit_minutes") is not None and str(data.get("time_limit_minutes")).strip() != "" else None,
-            passing_score=float(data.get("passing_score")) if data.get("passing_score") is not None and str(data.get("passing_score")).strip() != "" else 70.0,
+            max_attempts=conditions.get("max_attempts"),
+            time_limit_minutes=conditions.get("time_limit_minutes"),
+            passing_score=conditions.get("passing_score", 70.0),
         )
         db.session.add(condition)
         db.session.commit()
@@ -215,7 +228,7 @@ def create_quiz_service(
     except Exception as e:
         db.session.rollback()
         current_app.logger.error("Failed to create quiz: %s", e, exc_info=True)
-        return None, f"Failed to create quiz: {str(e)}", 500
+        return None, _internal_error_message(e), 500
 
 
 def update_quiz_service(
@@ -236,27 +249,31 @@ def update_quiz_service(
         return None, "Access denied.", 403
 
     if "title" in data:
-        title = data.get("title")
-        if not title or not isinstance(title, str) or not title.strip():
-            return None, "Quiz title cannot be empty.", 400
-        quiz.title = title.strip()
+        ok, title, message = clean_required_text(data.get("title"), "ชื่อแบบทดสอบ", 255)
+        if not ok:
+            return None, message, 400
+        quiz.title = title
 
     if "description" in data:
-        quiz.description = data.get("description")
+        ok, description, message = clean_optional_text(data.get("description"), "คำอธิบาย", 5000)
+        if not ok:
+            return None, message, 400
+        quiz.description = description
+
+    conditions, message = _parse_quiz_conditions(data)
+    if message:
+        return None, message, 400
 
     if not quiz.condition:
         quiz.condition = QuizCondition(quiz_id=quiz.quiz_id)
         db.session.add(quiz.condition)
 
-    if "passing_score" in data:
-        ps = data.get("passing_score")
-        quiz.condition.passing_score = float(ps) if ps is not None and str(ps).strip() != "" else 70.0
-    if "max_attempts" in data:
-        ma = data.get("max_attempts")
-        quiz.condition.max_attempts = int(ma) if ma is not None and str(ma).strip() != "" else None
-    if "time_limit_minutes" in data:
-        tl = data.get("time_limit_minutes")
-        quiz.condition.time_limit_minutes = int(tl) if tl is not None and str(tl).strip() != "" else None
+    if "passing_score" in conditions:
+        quiz.condition.passing_score = conditions["passing_score"]
+    if "max_attempts" in conditions:
+        quiz.condition.max_attempts = conditions["max_attempts"]
+    if "time_limit_minutes" in conditions:
+        quiz.condition.time_limit_minutes = conditions["time_limit_minutes"]
 
     try:
         db.session.commit()
@@ -265,7 +282,7 @@ def update_quiz_service(
     except Exception as e:
         db.session.rollback()
         current_app.logger.error("Failed to update quiz: %s", e, exc_info=True)
-        return None, f"Failed to update quiz: {str(e)}", 500
+        return None, _internal_error_message(e), 500
 
 
 def delete_quiz_service(
@@ -291,7 +308,7 @@ def delete_quiz_service(
     except Exception as e:
         db.session.rollback()
         current_app.logger.error("Failed to delete quiz: %s", e, exc_info=True)
-        return False, f"Failed to delete quiz: {str(e)}", 500
+        return False, _internal_error_message(e), 500
 
 
 def add_question_to_quiz_service(
@@ -312,18 +329,29 @@ def add_question_to_quiz_service(
         if not (is_owner or is_admin):
             return None, "Access denied.", 403
 
-    question_text = data.get("question_text")
-    if not question_text or not isinstance(question_text, str) or not question_text.strip():
-        return None, "question_text is required.", 400
+    ok, question_text, message = clean_required_text(data.get("question_text"), "คำถาม", 5000)
+    if not ok:
+        return None, message, 400
 
-    q_type = data.get("question_type", "multiple_choice").lower().strip()
+    raw_type = data.get("question_type") or "multiple_choice"
+    if not isinstance(raw_type, str):
+        return None, "ประเภทคำถามไม่ถูกต้อง", 400
+    q_type = raw_type.lower().strip()
     if q_type not in ["multiple_choice", "true_false", "matching", "ordering", "image_choice"]:
         return None, f"Invalid question_type '{q_type}'.", 400
 
-    explanation = data.get("explanation")
-    image_url = data.get("image_url")
-    pts_raw = data.get("points")
-    points_val = float(pts_raw) if pts_raw is not None and str(pts_raw).strip() != "" else 1.0
+    ok, explanation, message = clean_optional_text(data.get("explanation"), "คำอธิบายเฉลย", 5000)
+    if not ok:
+        return None, message, 400
+    ok, image_url, message = clean_optional_text(data.get("image_url"), "ลิงก์รูปภาพ", 500)
+    if not ok:
+        return None, message, 400
+    ok, points_val, message = parse_optional_number(data.get("points"), "คะแนน", min_value=0, max_value=1000, default=1.0)
+    if not ok:
+        return None, message, 400
+    raw_options = data.get("options") or []
+    if not isinstance(raw_options, list) or len(raw_options) > 20:
+        return None, "ตัวเลือกคำตอบต้องเป็นรายการ และมีได้ไม่เกิน 20 ข้อ", 400
 
     order_no = data.get("order_no")
     if order_no is None:
@@ -334,9 +362,9 @@ def add_question_to_quiz_service(
         new_question = Question(
             question_text=question_text.strip(),
             question_type=q_type,
-            image_url=str(image_url).strip() if (image_url and isinstance(image_url, str) and str(image_url).strip()) else None,
+            image_url=image_url,
             points=points_val,
-            explanation=explanation.strip() if explanation else None,
+            explanation=explanation,
         )
         db.session.add(new_question)
         db.session.flush()
@@ -348,7 +376,6 @@ def add_question_to_quiz_service(
         )
         db.session.add(qq_map)
 
-        raw_options = data.get("options", [])
         for idx, opt_item in enumerate(raw_options):
             opt_img = None
             if isinstance(opt_item, dict):
@@ -382,7 +409,7 @@ def add_question_to_quiz_service(
     except Exception as e:
         db.session.rollback()
         current_app.logger.error("Failed to add question: %s", e, exc_info=True)
-        return None, f"Failed to add question: {str(e)}", 500
+        return None, _internal_error_message(e), 500
 
 
 def update_question_service(
@@ -408,31 +435,43 @@ def update_question_service(
         return None, "Question not found.", 404
 
     if "question_text" in data:
-        qt = data.get("question_text")
-        if not qt or not isinstance(qt, str) or not qt.strip():
-            return None, "question_text cannot be empty.", 400
-        question.question_text = qt.strip()
+        ok, qt, message = clean_required_text(data.get("question_text"), "คำถาม", 5000)
+        if not ok:
+            return None, message, 400
+        question.question_text = qt
 
     if "question_type" in data:
-        q_type = data.get("question_type", "multiple_choice").lower().strip()
+        raw_type = data.get("question_type") or "multiple_choice"
+        if not isinstance(raw_type, str):
+            return None, "ประเภทคำถามไม่ถูกต้อง", 400
+        q_type = raw_type.lower().strip()
         if q_type not in ["multiple_choice", "true_false", "matching", "ordering", "image_choice"]:
             return None, f"Invalid question_type '{q_type}'.", 400
         question.question_type = q_type
 
     if "image_url" in data:
-        img = data.get("image_url")
-        question.image_url = str(img).strip() if (img and isinstance(img, str) and str(img).strip()) else None
+        ok, img, message = clean_optional_text(data.get("image_url"), "ลิงก์รูปภาพ", 500)
+        if not ok:
+            return None, message, 400
+        question.image_url = img
 
     if "points" in data:
-        pts = data.get("points")
-        question.points = float(pts) if pts is not None and str(pts).strip() != "" else 1.0
+        ok, pts, message = parse_optional_number(data.get("points"), "คะแนน", min_value=0, max_value=1000, default=1.0)
+        if not ok:
+            return None, message, 400
+        question.points = pts
 
     if "explanation" in data:
-        question.explanation = data.get("explanation")
+        ok, explanation, message = clean_optional_text(data.get("explanation"), "คำอธิบายเฉลย", 5000)
+        if not ok:
+            return None, message, 400
+        question.explanation = explanation
 
     if "options" in data:
+        raw_options = data.get("options") or []
+        if not isinstance(raw_options, list) or len(raw_options) > 20:
+            return None, "ตัวเลือกคำตอบต้องเป็นรายการ และมีได้ไม่เกิน 20 ข้อ", 400
         QuestionOption.query.filter_by(question_id=question_id).delete()
-        raw_options = data.get("options", [])
         for idx, opt_item in enumerate(raw_options):
             opt_img = None
             if isinstance(opt_item, dict):
@@ -462,7 +501,7 @@ def update_question_service(
     except Exception as e:
         db.session.rollback()
         current_app.logger.error("Failed to update question: %s", e, exc_info=True)
-        return None, f"Failed to update question: {str(e)}", 500
+        return None, _internal_error_message(e), 500
 
 
 def delete_question_service(
@@ -496,4 +535,29 @@ def delete_question_service(
     except Exception as e:
         db.session.rollback()
         current_app.logger.error("Failed to delete question: %s", e, exc_info=True)
-        return False, f"Failed to delete question: {str(e)}", 500
+        return False, _internal_error_message(e), 500
+
+
+def _internal_error_message(exc):
+    """ข้อ 39: บันทึกรายละเอียดลง Log แต่ส่งข้อความที่ปลอดภัยให้ผู้ใช้"""
+    from flask import current_app
+    from app.utils.errors import INTERNAL_ERROR_MESSAGE
+    current_app.logger.exception("Quiz service error: %s", exc)
+    return INTERNAL_ERROR_MESSAGE
+
+
+def _parse_quiz_conditions(data: dict):
+    """ข้อ 37: ตรวจเงื่อนไขแบบทดสอบ คืน (ค่าที่ผ่านการตรวจ, ข้อความ Error)"""
+    values = {}
+    for key, label, kwargs in (
+        ("max_attempts", "จำนวนครั้งที่ทำได้", {"integer": True, "min_value": 1, "max_value": 100}),
+        ("time_limit_minutes", "เวลาทำแบบทดสอบ (นาที)", {"integer": True, "min_value": 1, "max_value": 600}),
+        ("passing_score", "คะแนนผ่านขั้นต่ำ (%)", {"min_value": 0, "max_value": 100, "default": 70.0}),
+    ):
+        if key not in data:
+            continue
+        ok, value, message = parse_optional_number(data.get(key), label, **kwargs)
+        if not ok:
+            return None, message
+        values[key] = value
+    return values, None

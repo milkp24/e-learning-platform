@@ -11,6 +11,7 @@ function UserTable({
   onOpenDetailModal,
   onOpenEditModal,
   onOpenDeleteModal,
+  onOpenPasswordModal,
   canEditUser,
   canDeleteUser,
   currentUserId,
@@ -76,6 +77,7 @@ function UserTable({
               onOpenDetailModal={onOpenDetailModal}
               onOpenEditModal={onOpenEditModal}
               onOpenDeleteModal={onOpenDeleteModal}
+              onOpenPasswordModal={onOpenPasswordModal}
               canEditUser={canEditUser}
               canDeleteUser={canDeleteUser}
               currentUserId={currentUserId}

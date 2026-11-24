@@ -5,6 +5,7 @@ import SettingsFeedback from "./components/SettingsFeedback";
 import TimeoutConfigForm from "./components/TimeoutConfigForm";
 import SecurityPolicyInfoCard from "./components/SecurityPolicyInfoCard";
 import { notify } from "../../../store/useToastStore";
+import { SETTING_LIMITS, firstError, integerInRange } from "../../../utils/formValidation";
 
 /**
  * Settings Page Component (Admin System Settings)
@@ -48,9 +49,23 @@ function Settings() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setIsSaving(true);
     setMessage("");
     setError("");
+
+    // ข้อ 37: ตรวจค่าก่อนส่ง (กติกาเดียวกับ Backend)
+    const limits = SETTING_LIMITS;
+    const invalid = firstError(
+      integerInRange(sessionTimeout, limits.session_timeout_minutes.label, limits.session_timeout_minutes.min, limits.session_timeout_minutes.max),
+      integerInRange(warningCountdown, limits.warning_countdown_seconds.label, limits.warning_countdown_seconds.min, limits.warning_countdown_seconds.max),
+      integerInRange(guestTimeout, limits.guest_timeout_minutes.label, limits.guest_timeout_minutes.min, limits.guest_timeout_minutes.max),
+      Number(warningCountdown) >= Number(sessionTimeout) * 60 ? "เวลานับถอยหลังต้องน้อยกว่าเวลา Session หมดอายุ" : ""
+    );
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
       await adminService.updateSettings({

@@ -5,6 +5,7 @@ from app.extensions import db
 from app.models.user import User
 from app.utils.decorators import roles_required, get_current_user
 from app.services.exercise_service import ExerciseService, ExerciseServiceError
+from app.utils.errors import internal_error
 
 # =====================================================================
 # exercises.py: REST API สำหรับระบบ Interactive Exercise (Module 8.1)
@@ -67,7 +68,7 @@ def create_exercise():
         return jsonify({"error": "Validation Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>", methods=["GET"])
@@ -94,7 +95,7 @@ def get_exercise(exercise_id):
     except ExerciseServiceError as e:
         return jsonify({"error": "Error", "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>", methods=["PUT"])
@@ -121,7 +122,7 @@ def update_exercise(exercise_id):
         return jsonify({"error": "Validation Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>", methods=["DELETE"])
@@ -143,7 +144,7 @@ def delete_exercise(exercise_id):
         return jsonify({"error": "Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 # =====================================================================
@@ -171,7 +172,7 @@ def add_exercise_content(exercise_id):
         return jsonify({"error": "Validation Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/contents/<content_id>", methods=["PUT"])
@@ -193,7 +194,7 @@ def update_exercise_content(exercise_id, content_id):
         return jsonify({"error": "Validation Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/contents/<content_id>", methods=["DELETE"])
@@ -210,7 +211,7 @@ def delete_exercise_content(exercise_id, content_id):
         return jsonify({"error": "Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 # =====================================================================
@@ -238,7 +239,7 @@ def add_exercise_activity(exercise_id):
         return jsonify({"error": "Validation Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/activities/<activity_id>", methods=["PUT"])
@@ -260,7 +261,7 @@ def update_exercise_activity(exercise_id, activity_id):
         return jsonify({"error": "Validation Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/activities/<activity_id>", methods=["DELETE"])
@@ -277,7 +278,7 @@ def delete_exercise_activity(exercise_id, activity_id):
         return jsonify({"error": "Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 # =====================================================================
@@ -305,7 +306,7 @@ def add_exercise_checklist(exercise_id):
         return jsonify({"error": "Validation Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/checklists/<checklist_id>", methods=["PUT"])
@@ -327,7 +328,7 @@ def update_exercise_checklist(exercise_id, checklist_id):
         return jsonify({"error": "Validation Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/checklists/<checklist_id>", methods=["DELETE"])
@@ -344,7 +345,7 @@ def delete_exercise_checklist(exercise_id, checklist_id):
         return jsonify({"error": "Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 # =====================================================================
@@ -374,7 +375,7 @@ def start_exercise_attempt(exercise_id):
         return jsonify({"error": "Access Denied" if e.status_code == 403 else "Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/submit", methods=["POST"])
@@ -405,7 +406,7 @@ def submit_exercise_attempt(exercise_id):
         return jsonify({"error": "Error", "message": e.message}), e.status_code
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/result", methods=["GET"])
@@ -426,7 +427,7 @@ def get_exercise_result(exercise_id):
     except ExerciseServiceError as e:
         return jsonify({"error": "Not Found" if e.status_code == 404 else "Error", "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @exercises_bp.route("/exercises/<exercise_id>/attempts", methods=["GET"])
@@ -448,4 +449,4 @@ def get_exercise_attempts(exercise_id):
     except ExerciseServiceError as e:
         return jsonify({"error": "Error", "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)

@@ -8,6 +8,7 @@ import {
   LuTarget,
   LuWorkflow,
 } from "react-icons/lu";
+import { LearningJourney } from "../../../../features/learningJourney";
 
 // ======================================================
 // HeroSection Component (Structured Professional E-learning Hero)
@@ -28,7 +29,7 @@ import {
 //      * Practical Skills -> ประยุกต์ใช้ได้จริง (LuTarget)
 //      * Learn by Doing -> เปลี่ยนความรู้เป็นทักษะ (LuWorkflow)
 // 2. Right Visual Zone: Layered Product Visual
-//    - Top/Right: LEARNING JOURNEY Card (5 steps: 01-04 ●, 05 ○, straight vertical line)
+//    - Top/Right: LEARNING JOURNEY Card (ใช้ LearningJourney กลาง: สีและรูปแบบเดียวกับทุกหน้า)
 //    - Bottom/Left: LEARNING WORKSPACE Card (Chapter 01, Intro to IoT, Modules, Static Action)
 // ======================================================
 
@@ -71,16 +72,9 @@ function HeroSection() {
     },
   ];
 
-  const journeySteps = [
-    { num: "01", title: "เลือกคอร์ส", desc: "เลือกหลักสูตรที่ต้องการเรียน", isFilled: true },
-    { num: "02", title: "เรียนบทเรียน", desc: "ศึกษาเนื้อหาแบบ Interactive", isFilled: true },
-    { num: "03", title: "ลงมือทำ", desc: "ฝึกปฏิบัติจริงใน Workspace", isFilled: true },
-    { num: "04", title: "แก้ปัญหา", desc: "ทดสอบและแก้โจทย์ท้าทาย", isFilled: true },
-    { num: "05", title: "พัฒนาทักษะ", desc: "ต่อยอดสู่ระดับมืออาชีพ", isFilled: false },
-  ];
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#F8FAF9] via-white to-white border-b border-[#E5E9E7] pt-10 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8">
+    <section id="home-hero" className="relative overflow-hidden bg-gradient-to-b from-[#F8FAF9] via-white to-white border-b border-[#E5E9E7] pt-10 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8">
       {/* ======================================================== */}
       {/* Background Subtle Ambient Vectors                        */}
       {/* ======================================================== */}
@@ -287,48 +281,8 @@ function HeroSection() {
                 </span>
               </div>
 
-              {/* Steps Timeline: Straight Vertical Line, Filled 01-04 (●), Outline 05 (○) */}
-              <div className="space-y-1">
-                {journeySteps.map((step, idx) => (
-                  <div key={step.num} className="flex items-start gap-2.5">
-                    {/* Step Indicator: Straight Vertical Line */}
-                    <div className="flex flex-col items-center w-3.5 pt-1 shrink-0">
-                      {step.isFilled ? (
-                        <span
-                          className="h-3 w-3 rounded-full bg-[#004643] shrink-0 shadow-2xs"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <span
-                          className="h-3 w-3 rounded-full border-2 border-[#004643] bg-white shrink-0"
-                          aria-hidden="true"
-                        />
-                      )}
-                      {idx < journeySteps.length - 1 && (
-                        <span
-                          className="w-0.5 h-4.5 bg-[#ABD1C6]/70 my-0.5"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </div>
-
-                    {/* Step Text */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-[11px] font-mono font-bold text-[#004643]">
-                          {step.num}
-                        </span>
-                        <h3 className="text-xs sm:text-sm font-semibold text-[#26332F]">
-                          {step.title}
-                        </h3>
-                        <span className="text-[11px] text-[#6B7773] ml-1">
-                          · {step.desc}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* Steps Timeline: ใช้คอมโพเนนต์กลาง (ข้อ 26) ชี้ที่ขั้นไหนจะไฮไลต์ขั้นนั้น */}
+              <LearningJourney variant="list" interactive />
 
               {/* Card Footer: Learning Experience */}
               <div className="border-t border-[#E5E9E7] pt-3 flex items-center justify-between">
@@ -340,9 +294,6 @@ function HeroSection() {
                     Interactive · Practice · Build
                   </p>
                 </div>
-                <span className="rounded-md bg-[#FAFAFA] border border-[#E5E9E7] px-2.5 py-1 text-[11px] font-semibold text-[#26332F]">
-                  มาตรฐานระบบ
-                </span>
               </div>
             </div>
 

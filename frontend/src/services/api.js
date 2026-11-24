@@ -1,4 +1,5 @@
 import axios from "axios";
+import { normalizeApiError } from "../utils/errorMessage";
 
 // ======================================================
 // API Client (Axios Instance)
@@ -164,6 +165,15 @@ api.interceptors.response.use(
 
     return Promise.reject(error);
   }
+);
+
+// ======================================================
+// ข้อ 39: ปรับข้อความ Error ให้อ่านเข้าใจง่ายก่อนถึงหน้าเว็บ
+// (ลงทะเบียนหลัง Interceptor ด้านบน จึงทำงานกับ Error สุดท้ายหลังลอง Refresh แล้ว)
+// ======================================================
+api.interceptors.response.use(
+  (response) => response,
+  (error) => Promise.reject(normalizeApiError(error))
 );
 
 export default api;

@@ -196,6 +196,7 @@ function CourseFormModal({
               type="text"
               required
               value={title}
+              maxLength={255}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="เช่น IoT 101 — ภารกิจปลุกเมืองให้ฉลาด"
               className={`${inputClass} font-semibold`}
@@ -210,6 +211,7 @@ function CourseFormModal({
               id="course-description"
               rows={3}
               value={description}
+              maxLength={5000}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="ผู้เรียนจะได้เรียนรู้อะไรจากคอร์สนี้"
               className={`${inputClass} resize-none`}

@@ -849,14 +849,16 @@ function CourseContentManager() {
     handleDiscardAndExit();
   };
 
-  // ตรวจสอบสิทธิ์เบื้องต้น
-  const isAuthorized = hasRole("admin") || hasRole("instructor");
+  // ตรวจสอบสิทธิ์: ต้องเป็นผู้สอน/Admin และ (ข้อ 14) ต้องจัดการคอร์สนี้ได้
+  // can_manage มาจาก Backend: เจ้าของคอร์สหรือ Admin เท่านั้น อาจารย์คนอื่นเปิดหน้านี้ไม่ได้
+  const isAuthorized =
+    (hasRole("admin") || hasRole("instructor")) && course?.can_manage !== false;
   if (!isAuthorized && !isLoading) {
     return (
       <div className="py-20 text-center space-y-3">
         <h2 className="text-xl font-bold text-rose-600">ไม่มีสิทธิ์เข้าถึงหน้านี้</h2>
         <p className="text-xs text-[#6B7773]">
-          เฉพาะผู้สอนและผู้ดูแลระบบเท่านั้นที่สามารถจัดการเนื้อหาคอร์สเรียนได้
+          จัดการเนื้อหาได้เฉพาะคอร์สที่คุณเป็นผู้สอน หรือผู้ดูแลระบบเท่านั้น
         </p>
         <Link
           to="/"

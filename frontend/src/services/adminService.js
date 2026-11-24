@@ -105,7 +105,60 @@ export const adminService = {
     return response.data;
   },
 
+  // ข้อ 32: รายงานจากข้อมูลจริงตามช่วงวันที่ (GET /api/v1/admin/reports/summary)
+  async getReportsSummary(params = {}) {
+    const response = await api.get("/admin/reports/summary", { params });
+    return response.data;
+  },
+
+  // ข้อ 32: ดาวน์โหลดรายงานเป็นไฟล์ CSV (GET /api/v1/admin/reports/export)
+  async downloadReportCsv(params = {}) {
+    let response;
+    try {
+      response = await api.get("/admin/reports/export", {
+        params: { ...params, format: "csv" },
+        responseType: "blob",
+      });
+    } catch (err) {
+      // คำตอบ Error มาเป็น Blob อ่านข้อความภาษาไทยจาก Backend ออกมาแสดง
+      const blob = err.response?.data;
+      if (blob instanceof Blob) {
+        try {
+          const data = JSON.parse(await blob.text());
+          if (data?.message) {
+            err.response.data = data;
+            err.message = data.message;
+          }
+        } catch {
+          // ไม่ใช่ JSON ใช้ข้อความเดิม
+        }
+      }
+      throw err;
+    }
+    const disposition = response.headers?.["content-disposition"] || "";
+    const match = disposition.match(/filename="?([^";]+)"?/);
+    const filename = match ? match[1] : "elearning-report.csv";
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    return filename;
+  },
+
   // ลบบัญชีผู้ใช้ (DELETE /api/v1/admin/users/:id) - เฉพาะ Super Admin
+  // ข้อ 8: Super Admin ตั้งรหัสผ่านใหม่ให้ผู้ใช้อื่น (ไม่ต้องรู้รหัสเดิม)
+  async setUserPassword(userId, newPassword, confirmPassword) {
+    const response = await api.put(`/admin/users/${userId}/password`, {
+      new_password: newPassword,
+      confirm_password: confirmPassword,
+    });
+    return response.data;
+  },
+
   async deleteUser(userId) {
     const response = await api.delete(`/admin/users/${userId}`);
     return response.data;

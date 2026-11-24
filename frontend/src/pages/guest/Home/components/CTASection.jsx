@@ -15,7 +15,7 @@ import { LuUserPlus, LuBookOpen } from "react-icons/lu";
 
 function CTASection() {
   return (
-    <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <section id="home-cta" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="rounded-3xl bg-gradient-to-br from-[#004643] via-[#003835] to-[#26332F] p-8 sm:p-12 lg:p-16 text-center text-white space-y-6 shadow-md border border-[#004643]/40">
         <div className="max-w-2xl mx-auto space-y-3">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-snug">

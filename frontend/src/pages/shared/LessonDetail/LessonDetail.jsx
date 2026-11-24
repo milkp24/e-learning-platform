@@ -30,6 +30,7 @@ import {
 } from "../../../features/courses/iot101";
 import { confirmDelete } from "../../../store/useConfirmStore";
 import { notify } from "../../../store/useToastStore";
+import { useJourneyStep } from "../../../features/learningJourney";
 
 // ชื่อประเภทเนื้อหา ใช้ในกล่องยืนยันการลบ
 const CONTENT_TYPE_LABELS = {
@@ -91,6 +92,12 @@ function LessonDetail() {
   // ตรวจสอบว่าเป็นบทเรียน IoT 101 หรือไม่
   const isIoT101 = classroomId === "iot-101" || String(lessonId).startsWith("ep-");
   const interactiveMeta = isIoT101 ? EPISODE_INTERACTIVE_DATA[lessonId] : null;
+
+  // Learning Journey (ข้อ 26): มีโจทย์ภารกิจ = แก้ปัญหา, มีกิจกรรม/จำลองให้ทำ = ลงมือทำ,
+  // เนื้อหาอย่างเดียว = เรียนบทเรียน
+  useJourneyStep(
+    interactiveMeta?.mission ? 4 : interactiveMeta?.activity || interactiveMeta?.simulation ? 3 : 2
+  );
   const isCompleted = isIoT101 && completedEpisodes.includes(lessonId);
 
   // โหมดดูตัวอย่างมุมมองนักเรียน (ข้อ 20): ซ่อนปุ่มเพิ่มเนื้อหา แก้ไข และลบบทเรียนทั้งหมด

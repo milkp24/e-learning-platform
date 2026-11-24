@@ -15,6 +15,7 @@ import AccountOverviewSection from "./components/AccountOverviewSection";
 import LearningActivitySection from "./components/LearningActivitySection";
 import Loading from "../../../components/common/Loading";
 import AuditLogModal from "../../../features/permissions/components/AuditLogModal/AuditLogModal";
+import { DEFAULT_RANGE } from "../../../features/reports";
 
 /**
  * Super Admin Dashboard Page Component
@@ -23,7 +24,7 @@ import AuditLogModal from "../../../features/permissions/components/AuditLogModa
  * Requirements:
  * - Thai Greeting & Current Date
  * - 8 High-Impact Overview Cards
- * - Usage Overview with Date Filter Tabs (วันนี้, 7 วัน, 30 วัน, กำหนดเอง)
+ * - Usage Overview + กราฟรายวัน ตามช่วงวันที่ (วันนี้, 7 วัน, 30 วัน, กำหนดเอง เลือกวันได้จริง) (ข้อ 31)
  * - Staff Permission Governance & Overview
  * - Pending Actions with direct links
  * - Production Domain Metrics
@@ -32,7 +33,8 @@ import AuditLogModal from "../../../features/permissions/components/AuditLogModa
  */
 function Dashboard() {
   const { stats, isLoading, error, refetch } = useDashboardStats();
-  const [dateFilter, setDateFilter] = useState("7d");
+  // ข้อ 31: ช่วงวันที่ { range, start, end } ใช้ร่วมกันทั้งหน้า
+  const [dateFilter, setDateFilter] = useState(DEFAULT_RANGE);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
   if (isLoading && !stats.totalUsers && !stats.totalCourses) {
@@ -71,10 +73,7 @@ function Dashboard() {
       <SuperAdminOverviewCards stats={stats} />
 
       {/* 3. Usage Overview with Date Filter */}
-      <UsageOverviewSection
-        dateFilter={dateFilter}
-        setDateFilter={setDateFilter}
-      />
+      <UsageOverviewSection dateFilter={dateFilter} />
 
       {/* 4. Staff Permission Governance Summary */}
       <StaffPermissionSummarySection />

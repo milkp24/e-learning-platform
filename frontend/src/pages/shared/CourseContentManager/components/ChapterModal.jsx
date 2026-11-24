@@ -76,6 +76,7 @@ function ChapterModal({
               type="text"
               required
               value={title}
+              maxLength={255}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="เช่น บทที่ 1: เซนเซอร์และอุปกรณ์ตรวจจับ"
               className="w-full rounded-xl border border-[#E5E9E7] bg-[#FAFAFA] px-3.5 py-2.5 text-sm text-[#26332F] focus:border-[#ABD1C6] focus:bg-white focus:outline-none transition shadow-2xs"

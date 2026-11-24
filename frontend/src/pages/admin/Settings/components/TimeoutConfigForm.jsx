@@ -1,5 +1,6 @@
 
 import { LuClock } from "react-icons/lu";
+import { SETTING_LIMITS } from "../../../../utils/formValidation";
 
 /**
  * TimeoutConfigForm Component
@@ -44,8 +45,8 @@ function TimeoutConfigForm({
             </p>
             <input
               type="number"
-              min="1"
-              max="1440"
+              min={SETTING_LIMITS.session_timeout_minutes.min}
+              max={SETTING_LIMITS.session_timeout_minutes.max}
               value={sessionTimeout}
               onChange={(e) => onSessionTimeoutChange(e.target.value)}
               required
@@ -63,8 +64,8 @@ function TimeoutConfigForm({
             </p>
             <input
               type="number"
-              min="10"
-              max="600"
+              min={SETTING_LIMITS.warning_countdown_seconds.min}
+              max={SETTING_LIMITS.warning_countdown_seconds.max}
               value={warningCountdown}
               onChange={(e) => onWarningCountdownChange(e.target.value)}
               required
@@ -82,8 +83,8 @@ function TimeoutConfigForm({
             </p>
             <input
               type="number"
-              min="1"
-              max="120"
+              min={SETTING_LIMITS.guest_timeout_minutes.min}
+              max={SETTING_LIMITS.guest_timeout_minutes.max}
               value={guestTimeout}
               onChange={(e) => onGuestTimeoutChange(e.target.value)}
               required

@@ -41,6 +41,12 @@ class User(db.Model):
         nullable=False,
         default="active"
     )
+    # ข้อ 8: Access Token ที่ออกก่อนเวลานี้ใช้ไม่ได้ (เช่น Super Admin ตั้งรหัสผ่านใหม่ให้)
+    # ทำให้ผู้ใช้ต้อง Login ใหม่ทุกเครื่องทันที ไม่ต้องรอ Token หมดอายุ
+    sessions_revoked_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=True
+    )
     created_at = db.Column(
         db.DateTime(timezone=True),
         nullable=False,

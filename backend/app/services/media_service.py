@@ -25,22 +25,44 @@ class MediaService:
 
     ALLOWED_EXTENSIONS = {
         "mp4": "video/mp4",
+        "webm": "video/webm",
         "pdf": "application/pdf",
         "png": "image/png",
         "jpg": "image/jpeg",
         "jpeg": "image/jpeg",
-        "webp": "image/webp"
+        "webp": "image/webp",
+        # เอกสารแนบ (ข้อ 23): เดิมหน้าเว็บแปลงเป็น Base64 เก็บลงฐานข้อมูลโดยไม่ผ่านการตรวจ
+        "doc": "application/msword",
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "ppt": "application/vnd.ms-powerpoint",
+        "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "xls": "application/vnd.ms-excel",
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "zip": "application/zip",
     }
 
-    ALLOWED_MIME_TYPES = {
-        "video/mp4",
-        "video/webm",
-        "application/pdf",
-        "application/x-pdf",
-        "image/png",
-        "image/jpeg",
-        "image/webp"
+    # MIME ที่เบราว์เซอร์ส่งมาได้สำหรับแต่ละนามสกุล (application/octet-stream ยอมรับเสมอ
+    # เพราะบางเบราว์เซอร์/ระบบปฏิบัติการไม่รู้จักชนิดไฟล์ แต่ยังต้องผ่านการตรวจเนื้อไฟล์)
+    EXTENSION_MIME_TYPES = {
+        "mp4": {"video/mp4"},
+        "webm": {"video/webm"},
+        "pdf": {"application/pdf", "application/x-pdf"},
+        "png": {"image/png"},
+        "jpg": {"image/jpeg", "image/pjpeg"},
+        "jpeg": {"image/jpeg", "image/pjpeg"},
+        "webp": {"image/webp"},
+        "doc": {"application/msword"},
+        "docx": {"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+        "ppt": {"application/vnd.ms-powerpoint"},
+        "pptx": {"application/vnd.openxmlformats-officedocument.presentationml.presentation"},
+        "xls": {"application/vnd.ms-excel"},
+        "xlsx": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+        "zip": {"application/zip", "application/x-zip-compressed", "multipart/x-zip"},
     }
+
+    ALLOWED_MIME_TYPES = set().union(*EXTENSION_MIME_TYPES.values())
+
+    FILE_TYPE_LABEL = "MP4, WEBM, PDF, PNG, JPG, WEBP, DOC, DOCX, PPT, PPTX, XLS, XLSX, ZIP"
 
     MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
@@ -60,6 +82,24 @@ class MediaService:
         if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
             return "webp"
         return None
+
+    @classmethod
+    def content_matches_extension(cls, ext: str, head: bytes) -> bool:
+        """ข้อ 23: ตรวจเนื้อไฟล์จริง (Magic Bytes) ว่าตรงกับนามสกุล กันการเปลี่ยนชื่อไฟล์อื่นมาอัปโหลด"""
+        if ext in cls.IMAGE_EXTENSIONS:
+            detected = cls.detect_image_type(head)
+            return detected == ("jpeg" if ext in {"jpg", "jpeg"} else ext)
+        if ext == "pdf":
+            return head.startswith(b"%PDF-")
+        if ext == "mp4":
+            return len(head) >= 12 and head[4:8] == b"ftyp"
+        if ext == "webm":
+            return head.startswith(b"\x1a\x45\xdf\xa3")
+        if ext in {"docx", "pptx", "xlsx", "zip"}:
+            return head.startswith(b"PK\x03\x04") or (ext == "zip" and head.startswith(b"PK\x05\x06"))
+        if ext in {"doc", "ppt", "xls"}:
+            return head.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
+        return False
 
     @classmethod
     def save_image(cls, file, caller: User | None, host_url: str) -> tuple[dict, int]:
@@ -161,21 +201,25 @@ class MediaService:
 
         # สกัดนามสกุลไฟล์
         if "." not in raw_filename:
-            raise MediaServiceError("ไฟล์ต้องมีนามสกุลที่ถูกต้อง (.mp4 หรือ .pdf)", 400, "Validation Error")
+            raise MediaServiceError(f"ไฟล์ต้องมีนามสกุล รองรับ {cls.FILE_TYPE_LABEL}", 400, "Validation Error")
 
         ext = raw_filename.rsplit(".", 1)[1].lower()
         if ext not in cls.ALLOWED_EXTENSIONS:
             raise MediaServiceError(
-                f"ประเภทไฟล์ไม่ถูกต้อง (.{ext}) รองรับเฉพาะไฟล์ MP4, PDF, PNG, JPG, JPEG, WEBP เท่านั้น",
+                f"ประเภทไฟล์ไม่ถูกต้อง (.{ext}) รองรับเฉพาะไฟล์ {cls.FILE_TYPE_LABEL}",
                 400,
                 "Validation Error"
             )
 
-        # ตรวจสอบ MIME Type
-        content_type = (file.content_type or "").lower().strip()
-        if content_type and content_type not in cls.ALLOWED_MIME_TYPES and content_type != "application/octet-stream":
+        # ตรวจสอบ MIME Type ให้ตรงกับนามสกุล (เช่น .pdf แต่ส่งมาเป็น image/png = ไม่ผ่าน)
+        content_type = (file.content_type or "").lower().split(";")[0].strip()
+        if (
+            content_type
+            and content_type != "application/octet-stream"
+            and content_type not in cls.EXTENSION_MIME_TYPES.get(ext, set())
+        ):
             raise MediaServiceError(
-                f"MIME type '{content_type}' ไม่สอดคล้องกับประเภทไฟล์ที่อนุญาต",
+                f"ชนิดไฟล์ไม่ตรงกับนามสกุล .{ext} กรุณาตรวจสอบไฟล์แล้วลองใหม่",
                 400,
                 "Validation Error"
             )
@@ -188,13 +232,25 @@ class MediaService:
         if file_size == 0:
             raise MediaServiceError("ไฟล์ที่เลือกไม่มีข้อมูล (ขนาดไฟล์ 0 ไบต์)", 400, "Validation Error")
 
-        if file_size > cls.MAX_FILE_SIZE:
-            max_mb = cls.MAX_FILE_SIZE // (1024 * 1024)
+        # รูปภาพจำกัด 5 MB เหมือนการอัปโหลดรูปปก/โปรไฟล์ ไฟล์อื่น 50 MB
+        max_size = cls.MAX_IMAGE_SIZE if ext in cls.IMAGE_EXTENSIONS else cls.MAX_FILE_SIZE
+        if file_size > max_size:
+            max_mb = max_size // (1024 * 1024)
             actual_mb = file_size / (1024 * 1024)
             raise MediaServiceError(
                 f"ขนาดไฟล์เกินขีดจำกัดที่อนุญาต (สูงสุด {max_mb} MB) ไฟล์ของคุณมีขนาด {actual_mb:.1f} MB",
                 400,
                 "Payload Too Large"
+            )
+
+        # ตรวจเนื้อไฟล์จริงว่าตรงกับนามสกุล ไม่ผ่าน = ไม่บันทึกไฟล์
+        head = file.read(16)
+        file.seek(0)
+        if not cls.content_matches_extension(ext, head):
+            raise MediaServiceError(
+                f"เนื้อไฟล์ไม่ใช่ไฟล์ .{ext} ที่ถูกต้อง (ไฟล์อาจเสียหายหรือถูกเปลี่ยนนามสกุล) กรุณาเลือกไฟล์ใหม่",
+                400,
+                "Validation Error"
             )
 
         # สร้างชื่อไฟล์ที่ปลอดภัยและไม่ซ้ำกัน
@@ -213,8 +269,13 @@ class MediaService:
 
         try:
             file.save(destination)
-        except Exception as e:
-            raise MediaServiceError(f"ไม่สามารถบันทึกไฟล์ได้: {str(e)}", 500, "Internal Server Error")
+        except Exception:
+            current_app.logger.exception("Failed to save uploaded file")
+            raise MediaServiceError(
+                "ระบบบันทึกไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หากยังไม่ได้ให้แจ้งผู้ดูแลระบบ",
+                500,
+                "Internal Server Error",
+            )
 
         # สร้าง URL สำหรับเข้าถึงไฟล์
         clean_host = host_url.rstrip("/")

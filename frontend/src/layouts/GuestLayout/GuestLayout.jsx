@@ -4,6 +4,7 @@ import GuestHeader from "./components/GuestHeader";
 import Sidebar from "../../components/layout/Sidebar";
 import GuestLockModal from "../../features/auth/components/GuestLockModal";
 import Footer from "../../components/layout/Footer";
+import { LearningJourneyBar } from "../../features/learningJourney";
 
 // ======================================================
 // GuestLayout Component (โครงร่างหลักสำหรับผู้เยี่ยมชม / ยังไม่ Login)
@@ -65,6 +66,8 @@ function GuestLayout() {
               : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
           }`}
         >
+          {/* Learning Journey (ข้อ 26): ค้างอยู่ใต้ Header เวลาเลื่อนหน้าจอ และไฮไลต์เปลี่ยนตามหน้าที่เปิดอยู่ */}
+          {!isLandingHome && <LearningJourneyBar sticky className="mb-4" />}
           <Outlet context={{ openLockModal: handleOpenLockModal }} />
         </main>
 

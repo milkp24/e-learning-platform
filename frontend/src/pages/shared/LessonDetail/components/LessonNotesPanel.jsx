@@ -122,6 +122,7 @@ function LessonNotesPanel({ lessonId, classroomId, lessonTitle }) {
           <input
             type="text"
             value={title}
+            maxLength={255}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="หัวข้อบันทึก"
             aria-label="หัวข้อบันทึก"

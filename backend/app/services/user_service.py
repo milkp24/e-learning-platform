@@ -9,6 +9,12 @@ from app.models.progress import LearningProgress, LessonProgress
 from app.models.gamification import (
     UserXP, UserLevel, UserStreak, UserBadge, Mission, MissionProgress
 )
+from app.utils.admin_scope import (
+    OUT_OF_SCOPE_ACCOUNT_MESSAGE,
+    OUT_OF_SCOPE_ROLE_MESSAGE,
+    can_assign_roles,
+    can_manage_account,
+)
 from app.utils.validators import validate_email, validate_display_name, validate_password
 from app.services.media_service import MediaService, MediaServiceError
 
@@ -363,9 +369,12 @@ class UserService:
         if "super_admin" in role_names and not caller.has_role("super_admin"):
             raise UserServiceError("Only a Super Admin can assign the super_admin role.", 403, "Forbidden")
 
+        if not can_assign_roles(caller, role_names):
+            raise UserServiceError(OUT_OF_SCOPE_ROLE_MESSAGE, 403, "Forbidden")
+
         matched_roles = Role.query.filter(Role.role_name.in_(role_names)).all()
         if not matched_roles:
-            raise UserServiceError("No valid roles found.", 400, "Validation Error")
+            raise UserServiceError("ไม่พบบทบาทที่เลือก กรุณารีเฟรชหน้าแล้วเลือกใหม่", 400, "Validation Error")
 
         status = str(data.get("status", "active")).strip().lower()
         allowed_statuses = {"active", "inactive", "suspended"}
@@ -482,6 +491,9 @@ class UserService:
         if target_user.has_role("super_admin") and not caller.has_role("super_admin"):
             raise UserServiceError("Only a Super Admin can modify a Super Admin account.", 403, "Forbidden")
 
+        if not can_manage_account(caller, target_user):
+            raise UserServiceError(OUT_OF_SCOPE_ACCOUNT_MESSAGE, 403, "Forbidden")
+
         if not data or not isinstance(data, dict):
             raise UserServiceError("JSON body is required.", 400, "Bad Request")
 
@@ -547,9 +559,12 @@ class UserService:
             if (wants_super_admin or is_target_super_admin) and not caller.has_role("super_admin"):
                 raise UserServiceError("Only a Super Admin can assign or modify the super_admin role.", 403, "Forbidden")
 
+            if not can_assign_roles(caller, role_names):
+                raise UserServiceError(OUT_OF_SCOPE_ROLE_MESSAGE, 403, "Forbidden")
+
             matched_roles = Role.query.filter(Role.role_name.in_(role_names)).all()
             if not matched_roles:
-                raise UserServiceError("No valid roles found.", 400, "Validation Error")
+                raise UserServiceError("ไม่พบบทบาทที่เลือก กรุณารีเฟรชหน้าแล้วเลือกใหม่", 400, "Validation Error")
 
             if old_roles_set != new_roles_set:
                 target_user.roles = matched_roles
@@ -692,6 +707,9 @@ class UserService:
         if target_user.has_role("super_admin") and caller and not caller.has_role("super_admin"):
             raise UserServiceError("Only a Super Admin can modify the status of another Super Admin.", 403, "Forbidden")
 
+        if not can_manage_account(caller, target_user):
+            raise UserServiceError(OUT_OF_SCOPE_ACCOUNT_MESSAGE, 403, "Forbidden")
+
         target_user.status = new_status
         try:
             db.session.commit()
@@ -730,11 +748,15 @@ class UserService:
             raise UserServiceError("Users cannot modify their own roles.", 403, "Forbidden")
 
         if not data or "roles" not in data:
-            raise UserServiceError("roles array is required.", 400, "Bad Request")
+            raise UserServiceError("กรุณาเลือกบทบาทอย่างน้อย 1 บทบาท", 400, "Bad Request")
 
-        role_names = [str(r).strip().lower() for r in data.get("roles", [])]
+        raw_roles = data.get("roles")
+        # ข้อ 37: roles ต้องเป็นรายการชื่อบทบาท (ข้อความ) เท่านั้น
+        if not isinstance(raw_roles, list) or not all(isinstance(r, str) for r in raw_roles):
+            raise UserServiceError("กรุณาเลือกบทบาทอย่างน้อย 1 บทบาท", 400, "Validation Error")
+        role_names = [r.strip().lower() for r in raw_roles if r.strip()]
         if len(role_names) == 0:
-            raise UserServiceError("roles must be a non-empty list of role names.", 400, "Validation Error")
+            raise UserServiceError("กรุณาเลือกบทบาทอย่างน้อย 1 บทบาท", 400, "Validation Error")
 
         wants_super_admin = "super_admin" in role_names
         is_target_super_admin = target_user.has_role("super_admin")
@@ -742,9 +764,15 @@ class UserService:
         if (wants_super_admin or is_target_super_admin) and not caller.has_role("super_admin"):
             raise UserServiceError("Only a Super Admin can assign or modify the super_admin role.", 403, "Forbidden")
 
+        if not can_manage_account(caller, target_user):
+            raise UserServiceError(OUT_OF_SCOPE_ACCOUNT_MESSAGE, 403, "Forbidden")
+
+        if not can_assign_roles(caller, role_names):
+            raise UserServiceError(OUT_OF_SCOPE_ROLE_MESSAGE, 403, "Forbidden")
+
         matched_roles = Role.query.filter(Role.role_name.in_(role_names)).all()
         if not matched_roles:
-            raise UserServiceError("No valid roles found.", 400, "Validation Error")
+            raise UserServiceError("ไม่พบบทบาทที่เลือก กรุณารีเฟรชหน้าแล้วเลือกใหม่", 400, "Validation Error")
 
         previous_role = target_user.to_dict().get("role")
         target_user.roles = matched_roles
@@ -788,6 +816,109 @@ class UserService:
             raise UserServiceError("Failed to update user roles.", 500, "Internal Server Error")
 
     @classmethod
+    def set_user_password(
+        cls,
+        user_id_raw: str,
+        caller: User | None,
+        data: dict | None,
+        remote_addr: str | None = None,
+    ) -> dict:
+        """
+        Super Admin ตั้งรหัสผ่านใหม่ให้บัญชีอื่นโดยไม่ต้องรู้รหัสเดิม (ข้อ 8)
+        - ทำได้เฉพาะ Super Admin (Admin ทั่วไปได้ 403 และถูกบันทึก Audit Log ว่า DENIED)
+        - ห้ามใช้กับบัญชีตัวเอง ให้ใช้เมนูเปลี่ยนรหัสผ่านที่ต้องกรอกรหัสเดิม
+        - ตรวจรหัสผ่านตามกติกาเดียวกับการสมัคร และต้องกรอกยืนยันให้ตรงกัน
+        - สำเร็จแล้วยกเลิก Session ทุกเครื่องของบัญชีนั้น (Refresh Token + Access Token เดิม)
+        - บันทึก Audit Log ทุกครั้ง: ใครทำ บัญชีไหน เมื่อไร ผลเป็นอย่างไร
+          ห้ามเก็บรหัสผ่าน (ทั้งตัวจริงและแฮช) ลง Log เด็ดขาด
+        """
+        from datetime import datetime, timezone
+        from app.models.security import RefreshToken
+
+        if not caller:
+            raise UserServiceError("Caller not found.", 401, "Unauthorized")
+
+        try:
+            u_uuid = uuid.UUID(str(user_id_raw))
+        except (ValueError, TypeError):
+            raise UserServiceError("รูปแบบรหัสผู้ใช้ไม่ถูกต้อง", 400, "Bad Request")
+
+        target = db.session.get(User, u_uuid)
+
+        def write_log(result: str, reason: str | None = None):
+            details = {
+                "actor_user_id": str(caller.user_id),
+                "actor_email": caller.email,
+                "target_user_id": str(u_uuid),
+                "target_email": target.email if target else None,
+                "result": result,
+            }
+            if reason:
+                details["reason"] = reason
+            db.session.add(AuditLog(
+                user_id=caller.user_id,
+                action="USER_PASSWORD_SET_BY_ADMIN",
+                entity_type="user",
+                entity_id=u_uuid,
+                details=details,
+                ip_address=remote_addr,
+            ))
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+        def fail(message: str, status_code: int, error: str, reason: str):
+            write_log("DENIED" if status_code == 403 else "FAILED", reason)
+            raise UserServiceError(message, status_code, error)
+
+        if not caller.has_role("super_admin"):
+            fail("เฉพาะ Super Admin เท่านั้นที่ตั้งรหัสผ่านให้ผู้อื่นได้", 403, "Forbidden", "not_super_admin")
+
+        if not target:
+            fail("ไม่พบบัญชีผู้ใช้", 404, "Not Found", "user_not_found")
+
+        if str(caller.user_id) == str(target.user_id):
+            fail(
+                "ไม่สามารถตั้งรหัสผ่านให้บัญชีตัวเองจากหน้านี้ได้ กรุณาใช้เมนูเปลี่ยนรหัสผ่านที่หน้าโปรไฟล์",
+                403,
+                "Forbidden",
+                "own_account",
+            )
+
+        data = data or {}
+        new_password = data.get("new_password")
+        confirm_password = data.get("confirm_password")
+        if not isinstance(new_password, str) or not new_password:
+            fail("กรุณากรอกรหัสผ่านใหม่", 400, "Validation Error", "missing_password")
+        is_valid, _ = validate_password(new_password)
+        if not is_valid:
+            fail("รหัสผ่านต้องมีความยาว 6-128 ตัวอักษร", 400, "Validation Error", "invalid_password")
+        if new_password != confirm_password:
+            fail("รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน", 400, "Validation Error", "confirm_mismatch")
+
+        now = datetime.now(timezone.utc)
+        target.set_password(new_password)
+        target.sessions_revoked_at = now
+        RefreshToken.query.filter(
+            RefreshToken.user_id == target.user_id,
+            RefreshToken.revoked_at.is_(None),
+        ).update({RefreshToken.revoked_at: now}, synchronize_session=False)
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            write_log("FAILED", "database_error")
+            raise UserServiceError("ตั้งรหัสผ่านไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", 500, "Internal Server Error")
+
+        write_log("SUCCESS")
+        return {
+            "message": f"ตั้งรหัสผ่านใหม่ให้ {target.email} เรียบร้อยแล้ว ผู้ใช้ต้องเข้าสู่ระบบใหม่ด้วยรหัสผ่านนี้",
+            "user": target.to_dict(),
+        }
+
+    @classmethod
     def delete_user(cls, user_id_raw: str, caller: User | None, remote_addr: str | None = None) -> dict:
         """
         ลบผู้ใช้งานออกจากระบบถาวร (Permanent User Deletion)
@@ -816,6 +947,9 @@ class UserService:
 
         if target.has_role("super_admin") and not caller.has_role("super_admin"):
             raise UserServiceError("Only a Super Admin can delete another Super Admin.", 403, "Forbidden")
+
+        if not can_manage_account(caller, target):
+            raise UserServiceError(OUT_OF_SCOPE_ACCOUNT_MESSAGE, 403, "Forbidden")
 
         deleted_email = target.email
         deleted_roles = [r.role_name for r in target.roles]

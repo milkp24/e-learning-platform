@@ -1,4 +1,5 @@
 import uuid
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models.user import User
@@ -25,7 +26,7 @@ from app.models.story import Story, StoryScene, StoryProgress
 from app.models.streaming import LiveSchedule, LiveSession
 from app.models.virtuallab import LabAssignment
 from app.models.ai import AICodeRequest
-from app.utils.validators import validate_title
+from app.utils.validators import validate_title, clean_optional_text
 from app.services.media_service import MediaService, MediaServiceError
 
 
@@ -399,6 +400,21 @@ class ClassroomService:
             "classrooms": enrolled_courses
         }
 
+    @staticmethod
+    def ensure_unique_title(title: str, instructor_id, exclude_id=None) -> None:
+        """ข้อ 37: ชื่อคอร์สห้ามซ้ำกับคอร์สอื่นของผู้สอนคนเดียวกัน (ไม่สนตัวพิมพ์เล็ก/ใหญ่ ไม่นับคอร์สที่เก็บถาวร)"""
+        query = Classroom.query.filter(
+            Classroom.instructor_id == instructor_id,
+            func.lower(Classroom.title) == title.strip().lower(),
+            Classroom.status != COURSE_STATUS_ARCHIVED,
+        )
+        if exclude_id is not None:
+            query = query.filter(Classroom.classroom_id != exclude_id)
+        if query.first():
+            raise ClassroomServiceError(
+                f"คุณมีคอร์สชื่อ '{title.strip()}' อยู่แล้ว กรุณาใช้ชื่ออื่น", 409, "Conflict"
+            )
+
     @classmethod
     def create_classroom(cls, user: User | None, data: dict) -> tuple[dict, int]:
         """
@@ -417,7 +433,9 @@ class ClassroomService:
         if not is_valid_title:
             raise ClassroomServiceError(title_err, 400, "Validation Error")
 
-        description = data.get("description")
+        ok, description, desc_err = clean_optional_text(data.get("description"), "คำอธิบายคอร์ส", 5000)
+        if not ok:
+            raise ClassroomServiceError(desc_err, 400, "Validation Error")
         thumbnail_url = cls.clean_thumbnail(data.get("thumbnail_url"))
         # คอร์สใหม่เริ่มเป็นฉบับร่างเสมอ ถ้าขอสถานะอื่นจะเปลี่ยนผ่าน apply_status_change
         # (ผู้ไม่มีสิทธิ์ courses.publish ที่ขอเผยแพร่ จะกลายเป็นรอตรวจสอบ)
@@ -426,17 +444,20 @@ class ClassroomService:
         instructor_id = user.user_id
         if user.has_role("admin") and data.get("instructor_id"):
             try:
-                target_inst_uuid = uuid.UUID(data.get("instructor_id"))
+                target_inst_uuid = uuid.UUID(str(data.get("instructor_id")))
                 target_inst = db.session.get(User, target_inst_uuid)
                 if target_inst and (target_inst.has_role("instructor") or target_inst.has_role("admin")):
                     instructor_id = target_inst.user_id
             except (ValueError, TypeError):
                 raise ClassroomServiceError("Invalid instructor_id format.", 400, "Bad Request")
 
+        # ข้อ 37: ผู้สอนคนเดียวกันห้ามมีคอร์สชื่อซ้ำ (ไม่นับคอร์สที่เก็บถาวรแล้ว)
+        cls.ensure_unique_title(title, instructor_id)
+
         new_classroom = Classroom(
             instructor_id=instructor_id,
             title=title.strip(),
-            description=description.strip() if description else None,
+            description=description,
             thumbnail_url=thumbnail_url,
             visibility=cls.normalize_visibility(data.get("visibility") or COURSE_VISIBILITY_PUBLIC),
             status=COURSE_STATUS_DRAFT
@@ -523,10 +544,14 @@ class ClassroomService:
             is_valid_title, title_err = validate_title(data.get("title"), field_name="Course title")
             if not is_valid_title:
                 raise ClassroomServiceError(title_err, 400, "Validation Error")
+            cls.ensure_unique_title(data.get("title"), classroom.instructor_id, exclude_id=classroom.classroom_id)
             classroom.title = data.get("title").strip()
 
         if "description" in data:
-            classroom.description = data.get("description")
+            ok, description, desc_err = clean_optional_text(data.get("description"), "คำอธิบายคอร์ส", 5000)
+            if not ok:
+                raise ClassroomServiceError(desc_err, 400, "Validation Error")
+            classroom.description = description
 
         if "thumbnail_url" in data:
             classroom.thumbnail_url = cls.clean_thumbnail(data.get("thumbnail_url"))
@@ -794,7 +819,7 @@ class ClassroomService:
             raise ClassroomServiceError("user_id is required.", 400, "Bad Request")
 
         try:
-            target_user_uuid = uuid.UUID(data.get("user_id"))
+            target_user_uuid = uuid.UUID(str(data.get("user_id")))
         except (ValueError, TypeError):
             raise ClassroomServiceError("Invalid target user_id format.", 400, "Bad Request")
 

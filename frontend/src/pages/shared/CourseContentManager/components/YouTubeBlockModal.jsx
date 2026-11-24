@@ -199,6 +199,7 @@ function YouTubeBlockModal({
             <input
               type="text"
               value={title}
+              maxLength={255}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="เช่น วิดีโอ: ESP32 เบื้องต้น และการเชื่อมต่อ Sensor"
               className="w-full rounded-xl border border-[#E5E9E7] bg-[#FAFAFA] px-3.5 py-2.5 text-xs sm:text-sm text-[#26332F] focus:border-[#ABD1C6] focus:bg-white focus:outline-none transition shadow-2xs"

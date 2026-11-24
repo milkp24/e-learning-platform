@@ -240,6 +240,8 @@ export const useAuthStore = create((set, get) => ({
       }
 
       localStorage.setItem("token", accessToken);
+      // เริ่มนับเวลา Session ใหม่ตั้งแต่ Login (ข้อ 7)
+      localStorage.setItem("lastActivityAt", String(Date.now()));
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("role", userRole);
@@ -328,6 +330,7 @@ export const useAuthStore = create((set, get) => ({
     localStorage.removeItem("user_role");
     localStorage.removeItem("lastKnownRole");
     localStorage.removeItem("lastKnownUserId");
+    localStorage.removeItem("lastActivityAt");
     saveSessionNotification(null);
     set({
       user: null,

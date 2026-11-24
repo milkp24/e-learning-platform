@@ -136,3 +136,32 @@ samp,
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
 }
+/* ข้อ 32: ส่งออกรายงานเป็น PDF ผ่านการพิมพ์ของเบราว์เซอร์
+   พิมพ์เฉพาะเนื้อหารายงาน (.report-print) ซ่อนเมนู แถบด้านบน ปุ่ม และ Toast */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .report-print,
+  .report-print * {
+    visibility: visible;
+  }
+  .report-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .report-print .print\:hidden {
+    display: none !important;
+  }
+  .report-print .shadow-2xs,
+  .report-print .shadow-xs {
+    box-shadow: none !important;
+  }
+}

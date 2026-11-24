@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.utils.decorators import roles_required, get_current_user
 from app.services.role_service import RoleService, RoleServiceError
+from app.utils.errors import internal_error
 
 # =====================================================================
 # roles.py: Route Controller สำหรับ Role, Permission, และ Matrix Management
@@ -22,7 +23,7 @@ def list_all_roles():
     except RoleServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @roles_bp.route("/users/<user_id>/roles", methods=["GET"])
@@ -39,7 +40,7 @@ def get_user_roles(user_id):
     except RoleServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @roles_bp.route("/users/<user_id>/roles", methods=["POST"])
@@ -53,8 +54,8 @@ def assign_role_to_user(user_id):
         return jsonify(result), status_code
     except RoleServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to assign role."}), 500
+    except Exception as e:
+        return internal_error(e)
 
 
 @roles_bp.route("/users/<user_id>/roles/<role_name>", methods=["DELETE"])
@@ -67,8 +68,8 @@ def remove_role_from_user(user_id, role_name):
         return jsonify(result), 200
     except RoleServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to remove role."}), 500
+    except Exception as e:
+        return internal_error(e)
 
 
 @roles_bp.route("/roles/matrix", methods=["GET"])
@@ -83,7 +84,7 @@ def get_roles_permission_matrix():
     except RoleServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @roles_bp.route("/roles/<role_identifier>/permissions", methods=["GET"])
@@ -96,7 +97,7 @@ def get_role_permissions(role_identifier):
     except RoleServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @roles_bp.route("/roles/<role_identifier>/permissions", methods=["PUT"])
@@ -114,5 +115,5 @@ def update_role_permissions(role_identifier):
         return jsonify(result), 200
     except RoleServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to update role permissions."}), 500
+    except Exception as e:
+        return internal_error(e)

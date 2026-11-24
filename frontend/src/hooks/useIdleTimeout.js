@@ -1,17 +1,57 @@
 import { useState, useEffect, useRef } from "react";
 import useAuthStore from "../store/useAuthStore";
 import adminService from "../services/adminService";
+import authService from "../services/authService";
 import { onSessionEvent, broadcastSessionEvent } from "../utils/sessionSync";
+
+// เวลาใช้งานล่าสุดของสมาชิก (ms) ใช้ร่วมกันทุกแท็บ และอยู่รอดหลังปิดเบราว์เซอร์
+const LAST_ACTIVITY_KEY = "lastActivityAt";
+// เขียน localStorage ไม่ถี่เกินทุก 5 วินาที (mousemove ยิงบ่อยมาก)
+const ACTIVITY_WRITE_INTERVAL_MS = 5000;
+
+function readStoredActivity() {
+  try {
+    const value = Number(localStorage.getItem(LAST_ACTIVITY_KEY));
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeStoredActivity(timestamp) {
+  try {
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(timestamp));
+  } catch {
+    // localStorage ใช้ไม่ได้ (เช่นโหมดส่วนตัวบางเบราว์เซอร์) ใช้ค่าในหน่วยความจำแทน
+  }
+}
+
+/**
+ * คำนวณช่วงของ Session จากเวลาใช้งานล่าสุด (แยกเป็นฟังก์ชันล้วนเพื่อทดสอบได้)
+ * คืน { phase: "active" | "warning" | "expired", remainingSeconds }
+ */
+export function getSessionPhase(lastActivityAt, now, timeoutMinutes, warningSeconds) {
+  const timeoutMs = Math.max(1, timeoutMinutes) * 60 * 1000;
+  const warningMs = Math.min(Math.max(0, warningSeconds) * 1000, timeoutMs);
+  const remainingMs = lastActivityAt + timeoutMs - now;
+  const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+  if (remainingMs <= 0) return { phase: "expired", remainingSeconds: 0 };
+  if (remainingMs <= warningMs) return { phase: "warning", remainingSeconds };
+  return { phase: "active", remainingSeconds };
+}
 
 /**
  * useIdleTimeout Hook
  * จัดการวงจรชีวิตของ Session ผู้ใช้งาน และระบบ Inactivity Detection
  * 
  * ข้อกำหนด UAT-015, UAT-017, UAT-035, UAT-037:
- * 1. สมาชิก (Authenticated User):
- *    - เมื่อไม่มี Inactivity ครบตามเวลา (ค่าเริ่มต้น 30 นาทีจาก System Settings) จะแสดง Warning Modal
- *    - มีเวลานับถอยหลัง 120 วินาที ให้ผู้ใช้เลือก "ขยายเวลา (Extend Session)" หรือ "ออกจากระบบทันที (Logout)"
- *    - หากนับถอยหลังถึง 0 ระบบจะบังคับ Logout อัตโนมัติและนำทางไปยัง /login?expired=true
+ * 1. สมาชิก (Authenticated User) (ข้อ 7):
+ *    - Session หมดอายุเมื่อไม่มีการใช้งานครบตามเวลาที่ตั้ง (ค่าเริ่มต้น 30 นาทีจาก System Settings)
+ *    - แจ้งเตือน "ก่อน" หมดอายุ: แสดง Warning Modal เมื่อเหลือเวลา warning_countdown_seconds (ค่าเริ่มต้น 120 วินาที)
+ *      ผู้ใช้เลือก "ขยายเวลา" (ขอ Access Token ใหม่จาก Backend ด้วย) หรือ "ออกจากระบบทันที"
+ *    - นับถอยหลังถึง 0 = ครบเวลาที่ตั้งพอดี ระบบ Logout อัตโนมัติและนำทางไปยัง /login?expired=true
+ *    - เวลาใช้งานล่าสุดเก็บใน localStorage (ใช้ร่วมกันทุกแท็บ) ปิดเบราว์เซอร์แล้วกลับมาหลังเกินเวลา
+ *      จะถูก Logout ทันที ไม่ต่อ Session ให้เอง
  * 2. Multi-Tab Synchronization (UAT-037):
  *    - Tab A Logout -> Tab B ซิงค์ออกจากระบบทันที
  *    - Tab A Timeout -> Tab B ได้รับแจ้งเตือน Session Timeout
@@ -97,8 +137,13 @@ export function useIdleTimeout() {
 
   // 2. รีเซ็ตตัวจับเวลาเมื่อมีการสลับสถานะ Login / Logout
   useEffect(() => {
-    lastActivityRef.current = Date.now();
-    guestStartRef.current = Date.now();
+    const now = Date.now();
+    // สมาชิก: ใช้เวลาใช้งานล่าสุดที่เก็บไว้ (ถ้ามี) เพื่อให้เปิดหน้าใหม่แล้วยังนับต่อจากเดิม
+    // ถ้าเพิ่ง Login (ไม่มีค่าเก็บไว้) เริ่มนับจากตอนนี้
+    const stored = isAuthenticated ? readStoredActivity() : 0;
+    lastActivityRef.current = stored || now;
+    if (isAuthenticated && !stored) writeStoredActivity(now);
+    guestStartRef.current = now;
     setIsWarningOpen(false);
     isWarningOpenRef.current = false;
     setIsCountdownActive(false);
@@ -157,7 +202,7 @@ export function useIdleTimeout() {
         isCountdownActiveRef.current = false;
         setIsWarningOpen(false);
         isWarningOpenRef.current = false;
-        lastActivityRef.current = Date.now();
+        lastActivityRef.current = readStoredActivity() || Date.now();
         setCountdown(settings.warning_countdown_seconds);
       }
     });
@@ -181,7 +226,11 @@ export function useIdleTimeout() {
       if (isAuthenticatedRef.current) {
         // สำหรับสมาชิก: รีเซ็ตเวลา Activity ล่าสุดเฉพาะเมื่อยังไม่เข้าสู่ช่วง Warning หรือ Countdown
         if (!isWarningOpenRef.current && !isCountdownActiveRef.current) {
-          lastActivityRef.current = Date.now();
+          const now = Date.now();
+          if (now - lastActivityRef.current >= ACTIVITY_WRITE_INTERVAL_MS) {
+            writeStoredActivity(now);
+          }
+          lastActivityRef.current = now;
         }
       } else {
         // สำหรับ Guest: รีเซ็ตเวลาการใช้งานเฉพาะเมื่อยังไม่แสดง Popup Guest Timeout
@@ -204,100 +253,83 @@ export function useIdleTimeout() {
     };
   }, []);
 
-  // 4. ตรวจสอบสถานะ Inactivity ทุก ๆ 1 วินาที
+  // Logout เมื่อ Session หมดอายุ (เรียกครั้งเดียว)
+  const expireSession = () => {
+    setIsCountdownActive(false);
+    isCountdownActiveRef.current = false;
+    setIsWarningOpen(false);
+    isWarningOpenRef.current = false;
+    setCountdown(0);
+    if (logoutTriggeredRef.current) return;
+    logoutTriggeredRef.current = true;
+    broadcastSessionEvent("TIMEOUT");
+    try {
+      logout();
+    } catch (err) {
+      console.error("Logout on timeout error:", err);
+    }
+    // ล้าง Token และ User ออกจาก localStorage ทันทีก่อนเปลี่ยนเส้นทาง
+    localStorage.removeItem("token");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
+    window.location.href = "/login?expired=true";
+  };
+  const expireSessionRef = useRef(expireSession);
+  expireSessionRef.current = expireSession;
+
+  // 4. ตรวจสอบสถานะ Session ทุก 1 วินาที (ข้อ 7)
+  // - สมาชิก: active → warning (เหลือ warning_countdown_seconds) → expired (ครบเวลาที่ตั้ง)
+  //   ตัวเลขนับถอยหลังคำนวณจากเวลาจริงทุกวินาที จึงไม่คลาดแม้แท็บถูกพักไว้
+  // - Guest: ครบเวลาแสดง Modal ให้ Login / Register
   useEffect(() => {
-    const timer = setInterval(() => {
+    const tick = () => {
       const now = Date.now();
 
       if (isAuthenticatedRef.current) {
-        // --- ส่วนของผู้เรียนที่ Login แล้ว (Student Session Idle Timeout) ---
+        // แท็บอื่นอาจมีการใช้งานล่าสุดกว่า (ยกเว้นตอนกำลังเตือน ต้องกด "ขยายเวลา" เท่านั้น)
+        if (!isCountdownActiveRef.current) {
+          lastActivityRef.current = Math.max(lastActivityRef.current, readStoredActivity());
+        }
+        const { phase, remainingSeconds } = getSessionPhase(
+          lastActivityRef.current || now,
+          now,
+          settings.session_timeout_minutes,
+          settings.warning_countdown_seconds
+        );
 
-        // หากกำลังนับถอยหลัง Countdown ไม่ต้องตรวจสอบ Idle ซ้ำ
-        if (isCountdownActiveRef.current) {
+        if (phase === "expired") {
+          expireSessionRef.current();
           return;
         }
-
-        // คำนวณขีดจำกัดเวลา Timeout ตามการตั้งค่าระบบ (30 นาที)
-        const totalSessionMs =
-          settings.session_timeout_minutes * 60 * 1000;
-
-        // คำนวณเวลาที่ไม่มี Activity
-        const idleMs = now - (lastActivityRef.current || now);
-
-        // หากไม่มี Activity ครบ 30 นาที ให้แสดง Warning ทันที
-        if (idleMs >= totalSessionMs) {
-          setCountdown(settings.warning_countdown_seconds);
-          setIsCountdownActive(true);
-          isCountdownActiveRef.current = true;
-          setIsWarningOpen(true);
-          isWarningOpenRef.current = true;
-          logoutTriggeredRef.current = false;
+        if (phase === "warning") {
+          setCountdown(remainingSeconds);
+          if (!isCountdownActiveRef.current) {
+            setIsCountdownActive(true);
+            isCountdownActiveRef.current = true;
+            setIsWarningOpen(true);
+            isWarningOpenRef.current = true;
+            logoutTriggeredRef.current = false;
+          }
         }
       } else {
         // --- ส่วนของ Guest ที่ยังไม่ได้ Login (Guest Timeout) ---
-
-        // หากแสดง Popup อยู่แล้ว ไม่ต้องคำนวณซ้ำ
         if (isGuestTimeoutRef.current) {
           return;
         }
-
-        // คำนวณขีดจำกัดเวลา Guest ตามการตั้งค่าระบบ (15 นาที)
-        const totalGuestMs =
-          settings.guest_timeout_minutes * 60 * 1000;
-
-        // คำนวณเวลาที่ Guest ไม่มี Activity
+        const totalGuestMs = settings.guest_timeout_minutes * 60 * 1000;
         const guestElapsed = now - (guestStartRef.current || now);
-
-        // หาก Guest ไม่มี Activity ครบ 15 นาที ให้แสดง Modal สำหรับ Login / Register
         if (guestElapsed >= totalGuestMs) {
           setIsGuestTimeout(true);
           isGuestTimeoutRef.current = true;
         }
       }
-    }, 1000);
+    };
 
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [settings]);
-
-  // 5. ตัวจัดการนับถอยหลัง Countdown ก่อน Logout อัตโนมัติ (120 วินาที)
-  useEffect(() => {
-    // หากไม่อยู่ในสถานะ Countdown ไม่ต้องเริ่ม Timer
-    if (!isCountdownActive) {
-      return;
-    }
-
-    const countdownTimer = setInterval(() => {
-      setCountdown((currentCountdown) => {
-        // เมื่อ Countdown ถึง 1 หรือน้อยกว่า ในรอบถัดไปจะกลายเป็น 0
-        if (currentCountdown <= 1) {
-          setIsCountdownActive(false);
-          isCountdownActiveRef.current = false;
-          setIsWarningOpen(false);
-          isWarningOpenRef.current = false;
-
-          // ดำเนินการ Logout และ Redirect ไปหน้า Login
-          if (!logoutTriggeredRef.current) {
-            logoutTriggeredRef.current = true;
-            broadcastSessionEvent("TIMEOUT");
-            try {
-              logout();
-            } catch (err) {
-              console.error("Logout on timeout error:", err);
-            }
-            // ล้าง Token และ User ออกจาก localStorage ทันทีก่อนเปลี่ยนเส้นทาง
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            window.location.href = "/login?expired=true";
-          }
-          return 0;
-        }
-
-        return currentCountdown - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(countdownTimer);
-  }, [isCountdownActive, logout]);
 
   // 6. ฟังก์ชันกดยืดเวลาใช้งานต่อ (Extend Session)
   const extendSession = () => {
@@ -312,8 +344,25 @@ export function useIdleTimeout() {
     // รีเซ็ตสถานะการเรียก Logout
     logoutTriggeredRef.current = false;
 
-    // เริ่มจับเวลา Idle ใหม่ 30 นาที
-    lastActivityRef.current = Date.now();
+    // เริ่มจับเวลาใหม่ตามเวลาที่ตั้ง และบันทึกให้แท็บอื่นเห็น
+    const now = Date.now();
+    lastActivityRef.current = now;
+    writeStoredActivity(now);
+
+    // ขอ Access Token ใหม่ เพื่อให้ฝั่ง Backend ต่ออายุ Session ด้วย
+    authService
+      .refreshToken()
+      .then((data) => {
+        const newToken = data?.access_token || data?.accessToken;
+        if (newToken) {
+          localStorage.setItem("token", newToken);
+          localStorage.setItem("accessToken", newToken);
+        }
+        useAuthStore.getState()?.handleSessionRefreshed?.(data);
+      })
+      .catch(() => {
+        // ถ้า Refresh ไม่ได้ Interceptor ของ api.js จะพาไปหน้า Login เอง
+      });
 
     // รีเซ็ตตัวนับถอยหลังกลับสู่ค่าเริ่มต้น
     setCountdown(settings.warning_countdown_seconds);
@@ -346,6 +395,7 @@ export function useIdleTimeout() {
     // ล้าง localStorage และนำทางไปยังหน้า Login
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
     window.location.href = "/login";
   };
 

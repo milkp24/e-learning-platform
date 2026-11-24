@@ -43,7 +43,8 @@ function FileBlockModal({
   const [isUploaded, setIsUploaded] = useState(false);
   const [error, setError] = useState("");
 
-  const allowedExtensions = [".pdf", ".docx", ".pptx", ".xlsx", ".zip"];
+  // ข้อ 23: ตรงกับรายการที่ Backend รับ (ตรวจเนื้อไฟล์จริงอีกชั้นที่ Backend)
+  const allowedExtensions = [".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".zip"];
   const maxSizeBytes = 50 * 1024 * 1024; // 50 MB
 
   useEffect(() => {
@@ -92,6 +93,7 @@ function FileBlockModal({
   // จัดการเมื่อผู้ใช้เลือกไฟล์
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // เลือกไฟล์เดิมซ้ำได้หลังแก้ไขแล้ว (ข้อ 23)
     if (!file) return;
 
     setError("");
@@ -118,8 +120,9 @@ function FileBlockModal({
     }
     setAddedDate(new Date().toISOString());
 
-    // 3. สำหรับ PDF: อัปโหลดไปยัง Backend API /media/upload จริง
-    if (detected === "pdf") {
+    // 3. อัปโหลดทุกชนิดไปยัง Backend API /media/upload (ข้อ 23)
+    //    เดิมไฟล์ที่ไม่ใช่ PDF ถูกแปลงเป็น Base64 เก็บลงฐานข้อมูลโดยไม่ผ่านการตรวจ
+    {
       setIsUploading(true);
       try {
         const formData = new FormData();
@@ -137,19 +140,15 @@ function FileBlockModal({
         const errorMsg =
           err.response?.data?.message ||
           err.response?.data?.error ||
-          "เกิดข้อผิดพลาดในการอัปโหลดไฟล์ PDF";
+          "อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
         setError(errorMsg);
         setIsUploaded(false);
+        setFileUrl("");
+        setFileName("");
+        setFileSizeText("");
       } finally {
         setIsUploading(false);
       }
-    } else {
-      // สำหรับเอกสารแนบประเภทอื่น (DOCX, PPTX, ZIP)
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setFileUrl(event.target.result);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -234,7 +233,7 @@ function FileBlockModal({
             </div>
             <p className="text-[11px] text-amber-800 leading-relaxed">
               - <strong>PDF:</strong> สามารถอัปโหลดไฟล์ PDF จากเครื่องเข้าสู่ระบบได้โดยตรง หรือระบุลิงก์ภายนอก<br />
-              - <strong>เอกสารอื่น ๆ (DOCX, PPTX, XLSX, ZIP):</strong> สามารถเลือกไฟล์หรือระบุ URL เพื่อให้ผู้เรียนดาวน์โหลด
+              - <strong>เอกสารอื่น ๆ (DOC, DOCX, PPT, PPTX, XLS, XLSX, ZIP):</strong> อัปโหลดเข้าสู่ระบบหรือระบุ URL เพื่อให้ผู้เรียนดาวน์โหลด
             </p>
           </div>
 
@@ -270,7 +269,7 @@ function FileBlockModal({
                 )}
                 <input
                   type="file"
-                  accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.zip,.rar"
+                  accept={allowedExtensions.join(",")}
                   disabled={isUploading}
                   onChange={handleFileSelect}
                   className="hidden"
@@ -278,7 +277,7 @@ function FileBlockModal({
               </label>
             </div>
             <p className="text-[11px] text-[#6B7773]">
-              รองรับนามสกุล: .pdf, .docx, .pptx, .xlsx, .zip (ขนาดไม่เกิน 50 MB)
+              รองรับนามสกุล: {allowedExtensions.join(", ")} (ขนาดไม่เกิน 50 MB)
             </p>
           </div>
 

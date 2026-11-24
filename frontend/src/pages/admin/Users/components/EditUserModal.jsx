@@ -26,7 +26,7 @@ const OCCUPATION_OPTIONS = [
   "อื่น ๆ",
 ];
 
-function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
+function EditUserModal({ isOpen, onClose, user, onUserUpdated, isSuperAdmin = false }) {
   const [formData, setFormData] = useState({
     title: "",
     first_name: "",
@@ -402,8 +402,9 @@ function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
                   >
                     <option value="student">STUDENT (ผู้เรียน)</option>
                     <option value="instructor">INSTRUCTOR (ผู้สอน)</option>
-                    <option value="admin">ADMIN (ผู้ดูแลระบบ)</option>
-                    <option value="super_admin">SUPER ADMIN (ผู้ดูแลระบบสูงสุด)</option>
+                    {/* ข้อ 12: แต่งตั้งผู้ดูแลระบบได้เฉพาะ Super Admin */}
+                    {isSuperAdmin && <option value="admin">ADMIN (ผู้ดูแลระบบ)</option>}
+                    {isSuperAdmin && <option value="super_admin">SUPER ADMIN (ผู้ดูแลระบบสูงสุด)</option>}
                   </select>
                 </div>
 

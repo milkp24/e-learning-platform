@@ -1,9 +1,6 @@
+import { useState } from "react";
+import { JOURNEY_STEPS, STEP_TONE_CLASSES, getStepTone } from "../../../../features/learningJourney";
 import {
-  LuBookOpen,
-  LuCirclePlay,
-  LuCode,
-  LuCompass,
-  LuTrendingUp,
   LuArrowRight,
   LuArrowDown,
   LuSparkles,
@@ -20,38 +17,11 @@ import {
 // ======================================================
 
 function LearningExperienceSection() {
-  const steps = [
-    {
-      num: "01",
-      icon: LuBookOpen,
-      title: "เลือกคอร์ส",
-      desc: "ค้นหาหลักสูตรที่ตรงกับเป้าหมายและความสนใจของคุณ",
-    },
-    {
-      num: "02",
-      icon: LuCirclePlay,
-      title: "เรียนบทเรียน",
-      desc: "ทำความเข้าใจเนื้อหาและแนวคิดสำคัญผ่านสื่อคุณภาพ",
-    },
-    {
-      num: "03",
-      icon: LuCode,
-      title: "ลงมือทำ",
-      desc: "นำความรู้มาทดลองและฝึกปฏิบัติจริงในระบบ",
-    },
-    {
-      num: "04",
-      icon: LuCompass,
-      title: "แก้ปัญหา",
-      desc: "เรียนรู้จากการแก้โจทย์และรับมือกับความท้าทาย",
-    },
-    {
-      num: "05",
-      icon: LuTrendingUp,
-      title: "พัฒนาทักษะ",
-      desc: "ต่อยอดองค์ความรู้เพื่อนำไปประยุกต์ใช้สร้างสรรค์จริง",
-    },
-  ];
+  // ข้อมูลและสีชุดเดียวกับ Learning Journey ทุกหน้า (ข้อ 26)
+  const steps = JOURNEY_STEPS;
+  // ขั้นที่ชี้อยู่ (ชั่วคราว) ออกจากส่วนนี้แล้วกลับเป็นไม่ไฮไลต์
+  const [hoverStep, setHoverStep] = useState(null);
+  const toneOf = (step) => STEP_TONE_CLASSES[getStepTone(step, hoverStep)];
 
   return (
     <section
@@ -74,23 +44,23 @@ function LearningExperienceSection() {
         </div>
 
         {/* 1. Desktop View: Horizontal Flow (lg screens, 5 cols) */}
-        <div className="hidden lg:grid lg:grid-cols-5 gap-4 items-stretch relative">
+        <div className="hidden lg:grid lg:grid-cols-5 gap-4 items-stretch relative" onMouseLeave={() => setHoverStep(null)}>
           {steps.map((step, idx) => {
             const Icon = step.icon;
             const isLast = idx === steps.length - 1;
             return (
-              <div key={idx} className="relative flex flex-col">
-                <div className="flex-1 rounded-3xl border border-[#E5E9E7] bg-[#FAFAFA] p-5 xl:p-6 space-y-4 hover:border-[#ABD1C6] hover:bg-white transition-all duration-200 shadow-2xs flex flex-col justify-between">
+              <div key={step.num} className="relative flex flex-col" onMouseEnter={() => setHoverStep(step.step)}>
+                <div className={`flex-1 rounded-3xl border p-5 xl:p-6 space-y-4 transition-all duration-200 shadow-2xs flex flex-col justify-between ${toneOf(step.step).card}`}>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black text-[#004643] bg-[#ABD1C6]/30 px-2.5 py-1 rounded-lg">
+                      <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg transition-colors ${toneOf(step.step).num}`}>
                         {step.num}
                       </span>
                       <div className="h-10 w-10 rounded-2xl bg-white border border-[#E5E9E7] flex items-center justify-center text-[#004643] shadow-2xs">
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </div>
                     </div>
-                    <h3 className="text-base font-black text-[#26332F]">
+                    <h3 className={`text-base font-black transition-colors ${toneOf(step.step).title}`}>
                       {step.title}
                     </h3>
                     <p className="text-xs text-[#6B7773] leading-relaxed">
@@ -111,23 +81,23 @@ function LearningExperienceSection() {
         </div>
 
         {/* 2. Mobile & Tablet View: Vertical Flow (< lg screens) */}
-        <div className="lg:hidden flex flex-col space-y-3 max-w-md mx-auto">
+        <div className="lg:hidden flex flex-col space-y-3 max-w-md mx-auto" onMouseLeave={() => setHoverStep(null)}>
           {steps.map((step, idx) => {
             const Icon = step.icon;
             const isLast = idx === steps.length - 1;
             return (
-              <div key={idx} className="flex flex-col items-center w-full">
-                <div className="w-full rounded-2xl border border-[#E5E9E7] bg-[#FAFAFA] p-5 space-y-2 hover:border-[#ABD1C6] transition shadow-2xs">
+              <div key={step.num} className="flex flex-col items-center w-full" onMouseEnter={() => setHoverStep(step.step)}>
+                <div className={`w-full rounded-2xl border p-5 space-y-2 transition shadow-2xs ${toneOf(step.step).card}`}>
                   <div className="flex items-center gap-3.5">
                     <div className="h-11 w-11 rounded-xl bg-white border border-[#E5E9E7] flex items-center justify-center text-[#004643] shrink-0 shadow-2xs">
                       <Icon className="h-5 w-5" aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-[#004643] bg-[#ABD1C6]/30 px-2 py-0.5 rounded">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded transition-colors ${toneOf(step.step).num}`}>
                           {step.num}
                         </span>
-                        <h3 className="text-base font-black text-[#26332F] truncate">
+                        <h3 className={`text-base font-black truncate transition-colors ${toneOf(step.step).title}`}>
                           {step.title}
                         </h3>
                       </div>

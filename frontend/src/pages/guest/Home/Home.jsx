@@ -8,6 +8,7 @@ import LearningCategoriesSection from "./components/LearningCategoriesSection";
 import WhyLearnSection from "./components/WhyLearnSection";
 import LearningExperienceSection from "./components/LearningExperienceSection";
 import CTASection from "./components/CTASection";
+import LandingJourneyBar from "./components/LandingJourneyBar";
 
 // ======================================================
 // Home Component (Redesigned Guest Home - Professional E-learning Platform)
@@ -56,7 +57,11 @@ function Home() {
   };
 
   return (
-    <div className="w-full">
+    // scroll-mt: เลื่อนไปยัง Section ด้วยปุ่ม/ลิงก์แล้วหัวข้อไม่ถูก Header + แถบ Learning Journey บัง
+    <div className="w-full [&_[id]]:scroll-mt-40">
+      {/* Learning Journey (ข้อ 26): ค้างใต้ Header เมื่อเลื่อนพ้น Hero และเปลี่ยนขั้นตาม Section */}
+      <LandingJourneyBar />
+
       {/* 1. Hero Section */}
       <HeroSection />
 

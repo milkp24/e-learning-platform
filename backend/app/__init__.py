@@ -3,6 +3,7 @@ from app.config import Config
 from app.extensions import db, migrate, jwt, cors, limiter
 import app.models  # Ensure models are registered for migrations
 from app.models.role import seed_default_roles
+from app.utils.errors import register_error_handlers
 from app.routes import (
     auth_bp,
     users_bp,
@@ -35,6 +36,9 @@ def create_app(config_class=Config):
         resources={r"/*": {"origins": app.config.get("CORS_ORIGINS", "*")}},
         supports_credentials=True
     )
+
+    # ข้อ 39: ทุก Error ตอบเป็น JSON ภาษาไทย ไม่ส่งรายละเอียดทางเทคนิคให้ผู้ใช้
+    register_error_handlers(app)
 
     # 429 Too Many Requests Error Handler (Rate Limiting)
     @app.errorhandler(429)

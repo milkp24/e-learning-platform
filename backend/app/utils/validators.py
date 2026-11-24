@@ -25,23 +25,23 @@ ALLOWED_HTML_TAGS = {
 def validate_email(email: str) -> tuple[bool, str]:
     """ตรวจสอบรูปแบบอีเมล (UAT-004)"""
     if not email or not isinstance(email, str):
-        return False, "Email is required."
+        return False, "กรุณากรอกอีเมล"
     email_clean = email.strip()
     if len(email_clean) > 255:
-        return False, "Email must not exceed 255 characters."
+        return False, "อีเมลต้องยาวไม่เกิน 255 ตัวอักษร"
     if not EMAIL_REGEX.match(email_clean):
-        return False, "Invalid email format."
+        return False, "รูปแบบอีเมลไม่ถูกต้อง เช่น name@example.com"
     return True, ""
 
 
 def validate_password(password: str) -> tuple[bool, str]:
     """ตรวจสอบความยาวรหัสผ่าน (ขั้นต่ำ 6 ตัวอักษร) (UAT-004)"""
     if not password or not isinstance(password, str):
-        return False, "Password is required."
+        return False, "กรุณากรอกรหัสผ่าน"
     if len(password) < 6:
-        return False, "Password must be at least 6 characters long."
+        return False, "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"
     if len(password) > 128:
-        return False, "Password must not exceed 128 characters."
+        return False, "รหัสผ่านต้องยาวไม่เกิน 128 ตัวอักษร"
     return True, ""
 
 
@@ -57,13 +57,26 @@ def validate_display_name(display_name: str) -> tuple[bool, str]:
     return True, ""
 
 
+# ชื่อเรียกภาษาไทยของ field_name ที่ Service ส่งมา (ข้อ 37/39: ผู้ใช้อ่านแล้วรู้ว่าต้องแก้ช่องไหน)
+TITLE_LABELS = {
+    "Course/Classroom title": "ชื่อคอร์ส",
+    "Course title": "ชื่อคอร์ส",
+    "Chapter/Lesson title": "ชื่อบทเรียน",
+    "Chapter title": "ชื่อบทเรียน",
+    "Episode title": "ชื่อตอน",
+    "Journal title": "หัวข้อบันทึก",
+    "Title": "หัวข้อ",
+}
+
+
 def validate_title(title: str, field_name: str = "Title", max_length: int = 255) -> tuple[bool, str]:
-    """ตรวจสอบความถูกต้องของหัวข้อ (Title)"""
+    """ตรวจสอบความถูกต้องของหัวข้อ (Title): ห้ามว่าง ห้ามมีแต่ช่องว่าง และไม่ยาวเกินกำหนด"""
+    label = TITLE_LABELS.get(field_name, field_name)
     if not title or not isinstance(title, str) or not title.strip():
-        return False, f"{field_name} is required."
+        return False, f"กรุณากรอก{label}"
     title_clean = title.strip()
     if len(title_clean) > max_length:
-        return False, f"{field_name} must not exceed {max_length} characters."
+        return False, f"{label}ต้องยาวไม่เกิน {max_length} ตัวอักษร"
     return True, ""
 
 
@@ -155,6 +168,88 @@ def sanitize_content_by_type(content_type: str, content_data: str) -> tuple[bool
         # ตรวจสอบว่าไม่ว่างเปล่า
         if not raw_data:
             return False, "", f"Data for {c_type} cannot be empty."
+        # ข้อ 23: เก็บได้แค่ลิงก์ http(s) หรือที่อยู่ไฟล์ที่อัปโหลดผ่านระบบแล้ว
+        # ไม่รับ Base64 (data:) ที่ข้ามการตรวจไฟล์ และไม่รับ javascript:
+        lowered = raw_data.lower()
+        if lowered.startswith("data:"):
+            return False, "", "กรุณาอัปโหลดไฟล์ผ่านปุ่มเลือกไฟล์ ระบบไม่รับไฟล์แบบ Base64"
+        if not (lowered.startswith(("http://", "https://")) or raw_data.startswith("/api/v1/media/uploads/")):
+            return False, "", "ลิงก์ไฟล์ต้องขึ้นต้นด้วย http:// หรือ https://"
+        if len(raw_data) > 2048:
+            return False, "", "ลิงก์ไฟล์ยาวเกิน 2048 ตัวอักษร"
         return True, raw_data, ""
 
     return True, raw_data, ""
+
+
+# =====================================================================
+# ข้อ 37: ตัวช่วยตรวจข้อมูลก่อนบันทึก (ใช้ร่วมกันหลาย Service)
+# ทุกฟังก์ชันคืน (ผ่านหรือไม่, ค่าที่ทำความสะอาดแล้ว, ข้อความภาษาไทยเมื่อไม่ผ่าน)
+# =====================================================================
+def clean_optional_text(value, label: str, max_length: int) -> tuple[bool, str | None, str]:
+    """ข้อความที่ไม่บังคับกรอก: ต้องเป็นข้อความ ตัดช่องว่างหัวท้าย ว่าง = None และไม่ยาวเกิน max_length"""
+    if value is None:
+        return True, None, ""
+    if not isinstance(value, str):
+        return False, None, f"{label} ต้องเป็นข้อความ"
+    cleaned = value.strip()
+    if not cleaned:
+        return True, None, ""
+    if len(cleaned) > max_length:
+        return False, None, f"{label} ต้องยาวไม่เกิน {max_length:,} ตัวอักษร"
+    return True, cleaned, ""
+
+
+def clean_required_text(value, label: str, max_length: int) -> tuple[bool, str | None, str]:
+    """ข้อความที่บังคับกรอก: เหมือน clean_optional_text แต่ห้ามว่างหรือมีแต่ช่องว่าง"""
+    ok, cleaned, message = clean_optional_text(value, label, max_length)
+    if not ok:
+        return ok, cleaned, message
+    if cleaned is None:
+        return False, None, f"กรุณากรอก{label}"
+    return True, cleaned, ""
+
+
+def parse_optional_number(
+    value,
+    label: str,
+    *,
+    integer: bool = False,
+    min_value: float | None = None,
+    max_value: float | None = None,
+    default=None,
+) -> tuple[bool, float | int | None, str]:
+    """ตัวเลขที่ไม่บังคับกรอก: รับตัวเลขหรือข้อความตัวเลข ว่าง = default และต้องอยู่ในช่วงที่กำหนด"""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return True, default, ""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return False, None, f"{label} ต้องเป็นตัวเลข"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return False, None, f"{label} ต้องเป็นตัวเลข"
+    if number != number or number in (float("inf"), float("-inf")):
+        return False, None, f"{label} ต้องเป็นตัวเลข"
+    if integer:
+        if number != int(number):
+            return False, None, f"{label} ต้องเป็นจำนวนเต็ม"
+        number = int(number)
+    if min_value is not None and number < min_value:
+        return False, None, f"{label} ต้องไม่น้อยกว่า {min_value:g}"
+    if max_value is not None and number > max_value:
+        return False, None, f"{label} ต้องไม่เกิน {max_value:g}"
+    return True, number, ""
+
+
+_PHONE_ALLOWED = re.compile(r"^\+?[0-9\s\-().]+$")
+
+
+def validate_phone(phone) -> tuple[bool, str]:
+    """ข้อ 37: เบอร์โทร ตัวเลข 9-15 หลัก ใช้ + - ( ) . และช่องว่างคั่นได้ เช่น 02-123-4567, +66 81 234 5678"""
+    if not isinstance(phone, str) or not phone.strip():
+        return False, "กรุณากรอกเบอร์โทรศัพท์"
+    value = phone.strip()
+    digits = re.sub(r"\D", "", value)
+    if not _PHONE_ALLOWED.match(value) or not 9 <= len(digits) <= 15:
+        return False, "เบอร์โทรศัพท์ไม่ถูกต้อง ต้องเป็นตัวเลข 9-15 หลัก เช่น 02-123-4567"
+    return True, ""

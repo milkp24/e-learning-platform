@@ -551,6 +551,27 @@ def refresh():
     token_hash = hash_token(raw_refresh_token)
     db_token = RefreshToken.query.filter_by(token_hash=token_hash).first()
 
+    # ข้อ 6: Refresh Token ที่ถูกเพิกถอนไปแล้วถูกนำกลับมาใช้ซ้ำ = อาจถูกขโมย
+    # เพิกถอน Refresh Token ที่ยังใช้งานได้ทั้งหมดของบัญชีนั้น ให้ต้อง Login ใหม่ทุกเครื่อง
+    # ยกเว้นกรณีเพิ่งเพิกถอนไม่เกิน 60 วินาที (หลายแท็บขอ Refresh พร้อมกัน) ไม่ถือว่าถูกขโมย
+    now = datetime.now(timezone.utc)
+    if (
+        db_token
+        and db_token.revoked_at is not None
+        and now - _as_utc(db_token.revoked_at) > timedelta(seconds=60)
+    ):
+        RefreshToken.query.filter(
+            RefreshToken.user_id == db_token.user_id,
+            RefreshToken.revoked_at.is_(None),
+        ).update({RefreshToken.revoked_at: now}, synchronize_session=False)
+        db.session.commit()
+        response = make_response(jsonify({
+            "error": "Unauthorized",
+            "message": "Invalid or expired refresh token."
+        }), 401)
+        response.delete_cookie("refresh_token", path="/")
+        return response
+
     # ตรวจสอบการมีอยู่ ความถูกต้อง และวันหมดอายุ
     if not db_token or not db_token.is_active():
         return jsonify({

@@ -23,13 +23,16 @@ def test_user_domain():
         client = app.test_client()
 
         # Step 0: Identify test accounts
-        super_admin = User.query.filter(User.roles.any(Role.role_name == "super_admin")).first()
-        admin = User.query.filter(User.roles.any(Role.role_name == "admin")).filter(
+        # ใช้เฉพาะบัญชี active: บัญชีที่ถูกปิดใช้งานใช้ Token ไม่ได้ (ข้อ 6)
+        super_admin = User.query.filter(
+            User.status == "active", User.roles.any(Role.role_name == "super_admin")
+        ).first()
+        admin = User.query.filter(User.status == "active", User.roles.any(Role.role_name == "admin")).filter(
             ~User.roles.any(Role.role_name == "super_admin")
         ).first()
         # ต้องเป็น student ที่มีโปรไฟล์ เพราะเทสต์นี้แก้ไขโปรไฟล์ (PUT /users/me/profile)
         student = User.query.filter(
-            User.roles.any(Role.role_name == "student"), User.profile.has()
+            User.status == "active", User.roles.any(Role.role_name == "student"), User.profile.has()
         ).first()
 
         assert super_admin, "Super Admin user required in DB"

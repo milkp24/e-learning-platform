@@ -1,4 +1,4 @@
-import { LuEye, LuPencil, LuShield, LuTrash2 } from "react-icons/lu";
+import { LuEye, LuKeyRound, LuPencil, LuShield, LuTrash2 } from "react-icons/lu";
 import { RowActionGroup, RowTextButton, RowIconButton } from "../../../../components/common/RowActions";
 
 function UserTableRow({
@@ -8,6 +8,7 @@ function UserTableRow({
   onOpenDetailModal,
   onOpenEditModal,
   onOpenDeleteModal,
+  onOpenPasswordModal,
   canEditUser,
   canDeleteUser,
   currentUserId,
@@ -20,12 +21,14 @@ function UserTableRow({
       (String(user.user_id) === String(currentUserId) ||
         String(user.id) === String(currentUserId))
   );
-  const targetIsSuperAdmin = Boolean(
-    user.roles?.includes("super_admin") || user.role === "super_admin"
+  // ข้อ 12: Admin จัดการได้เฉพาะบัญชีผู้เรียน/ผู้สอน บัญชีผู้ดูแลระบบ (admin, super_admin)
+  // ต้องให้ Super Admin จัดการ (Backend ตอบ 403 เช่นกัน)
+  const targetIsStaff = Boolean(
+    ["admin", "super_admin"].some((r) => user.roles?.includes(r) || user.role === r)
   );
-  const isDeleteDisabled = isSelf || (targetIsSuperAdmin && !isSuperAdmin);
-  // #22: Admin ทั่วไปห้ามแก้ไขบัญชี Super Admin (Backend ตอบ 403 เช่นกัน)
-  const isProtectedSuperAdmin = targetIsSuperAdmin && !isSuperAdmin;
+  const isDeleteDisabled = isSelf || (targetIsStaff && !isSuperAdmin);
+  const isProtectedSuperAdmin = targetIsStaff && !isSuperAdmin;
+  const STAFF_ONLY_REASON = "บัญชีผู้ดูแลระบบจัดการได้โดย Super Admin เท่านั้น";
   const canModifyTarget = canEditUser && !isProtectedSuperAdmin;
 
   return (
@@ -85,7 +88,7 @@ function UserTableRow({
         <select
           value={user.status}
           disabled={!canModifyTarget}
-          title={isProtectedSuperAdmin ? "เฉพาะ Super Admin เท่านั้นที่แก้ไขบัญชี Super Admin ได้" : undefined}
+          title={isProtectedSuperAdmin ? STAFF_ONLY_REASON : undefined}
           onChange={(e) => onStatusChange(user.user_id, e.target.value)}
           className={`rounded-lg border px-2.5 py-1 text-xs font-bold uppercase focus:outline-none transition ${
             !canModifyTarget ? "cursor-not-allowed opacity-70 " : "cursor-pointer "
@@ -110,7 +113,7 @@ function UserTableRow({
             icon={LuShield}
             onClick={() => onOpenRoleModal(user)}
             disabled={isProtectedSuperAdmin}
-            disabledReason="เฉพาะ Super Admin เท่านั้นที่แก้ไขบทบาทของ Super Admin ได้"
+            disabledReason={STAFF_ONLY_REASON}
             title="กำหนดบทบาท"
           >
             บทบาท
@@ -127,10 +130,20 @@ function UserTableRow({
             disabled={!canModifyTarget}
             disabledReason={
               isProtectedSuperAdmin
-                ? "Admin แก้ไขบัญชี Super Admin ไม่ได้"
+                ? STAFF_ONLY_REASON
                 : "คุณไม่มีสิทธิ์แก้ไขผู้ใช้"
             }
           />
+          {/* ข้อ 8: ตั้งรหัสผ่านใหม่ ใช้ได้เฉพาะ Super Admin และไม่ใช่บัญชีตัวเอง */}
+          {isSuperAdmin && onOpenPasswordModal && (
+            <RowIconButton
+              icon={LuKeyRound}
+              label="ตั้งรหัสผ่านใหม่"
+              onClick={() => onOpenPasswordModal(user)}
+              disabled={isSelf}
+              disabledReason="เปลี่ยนรหัสผ่านของตัวเองได้ที่หน้าโปรไฟล์"
+            />
+          )}
           {canDeleteUser && (
             <RowIconButton
               icon={LuTrash2}
@@ -141,7 +154,7 @@ function UserTableRow({
               disabledReason={
                 isSelf
                   ? "ไม่สามารถลบบัญชีของตนเองได้"
-                  : "เฉพาะ Super Admin เท่านั้นที่สามารถลบบัญชี Super Admin ได้"
+                  : STAFF_ONLY_REASON
               }
             />
           )}

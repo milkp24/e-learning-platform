@@ -15,6 +15,7 @@ import AddMemberModal from "./components/AddMemberModal";
 import GuestLockModal from "../../../components/GuestLockModal";
 import { confirmDelete } from "../../../store/useConfirmStore";
 import { notify } from "../../../store/useToastStore";
+import { useJourneyStep } from "../../../features/learningJourney";
 
 /**
  * ClassroomDetail Page Component (หน้ารายละเอียดห้องเรียน)
@@ -332,6 +333,9 @@ function ClassroomDetail() {
     isInstructorPreview ||
     !!classroom?.is_enrolled ||
     members.some((m) => user && String(m.user_id) === String(user.user_id));
+
+  // Learning Journey (ข้อ 26): ยังไม่ลงทะเบียน = เลือกคอร์ส, ลงทะเบียนแล้ว = เรียนบทเรียน
+  useJourneyStep(isEnrolled ? 2 : 1);
 
   if (loading) {
     return (

@@ -8,8 +8,13 @@ function UserRoleModal({
   roleModalError,
   isSubmittingRole,
   onSaveRoles,
+  isSuperAdmin = false,
 }) {
   if (!isOpen || !selectedUser) return null;
+  // ข้อ 12: Admin กำหนดได้เฉพาะบทบาทผู้เรียน/ผู้สอน แต่งตั้งผู้ดูแลระบบได้เฉพาะ Super Admin
+  const visibleRoles = isSuperAdmin
+    ? allRoles
+    : allRoles.filter((role) => !["admin", "super_admin"].includes(role.role_name));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-[2px] p-4 transition-all">
@@ -40,7 +45,7 @@ function UserRoleModal({
 
         <form onSubmit={onSaveRoles} className="space-y-4">
           <div className="space-y-2">
-            {allRoles.map((role) => {
+            {visibleRoles.map((role) => {
               const rName = role.role_name;
               const isChecked = selectedRoles.includes(rName);
               return (

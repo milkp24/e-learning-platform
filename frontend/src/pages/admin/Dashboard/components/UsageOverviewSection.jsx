@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
-import {
-  LuTrendingUp,
-  LuActivity,
-} from "react-icons/lu";
+import { LuActivity } from "react-icons/lu";
 import adminService from "../../../../services/adminService";
+import { DEFAULT_RANGE, DailyTrendChart, describeRange, rangeToParams } from "../../../../features/reports";
 
 /**
- * UsageOverviewSection
- * Displays platform usage trends with dynamic date filter from real backend database
+ * UsageOverviewSection (ข้อ 31)
+ * ภาพรวมการใช้งานจากฐานข้อมูลจริง ตัวเลขและกราฟรายวันเปลี่ยนตามช่วงวันที่ที่เลือกที่หัว Dashboard
+ * (เดิมอ่านค่าผิดตำแหน่ง ตัวเลขจึงเป็น 0 ตลอด และปุ่ม "กำหนดเอง" กดแล้วไม่มีอะไรเกิดขึ้น)
  */
-export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter }) {
+export default function UsageOverviewSection({ dateFilter = DEFAULT_RANGE }) {
   const [usage, setUsage] = useState({
     logins: 0,
     activeLearners: 0,
@@ -17,20 +16,20 @@ export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter 
     quizzesSubmitted: 0,
     missionsCompleted: 0,
     engagementRate: "0%",
+    uniqueLogins: 0,
+    totalStudents: 0,
   });
-  // Label for date range
-  const rangeLabels = {
-    today: "วันนี้ (24 ชั่วโมงที่ผ่านมา)",
-    "7d": "7 วันที่ผ่านมา",
-    "30d": "30 วันที่ผ่านมา",
-    custom: "ช่วงเวลาที่กำหนดเอง",
-  };
+  const [series, setSeries] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
     const fetchUsage = async () => {
+      setIsLoading(true);
+      setLoadError("");
       try {
-        const data = await adminService.getUsageOverview({ range: dateFilter });
+        const data = await adminService.getUsageOverview(rangeToParams(dateFilter));
         if (isMounted && data) {
           setUsage({
             logins: data.logins ?? 0,
@@ -39,11 +38,15 @@ export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter 
             quizzesSubmitted: data.quizzesSubmitted ?? 0,
             missionsCompleted: data.missionsCompleted ?? 0,
             engagementRate: data.engagementRate ?? "0%",
+            uniqueLogins: data.uniqueLogins ?? 0,
+            totalStudents: data.totalStudents ?? 0,
           });
+          setSeries(data.series || []);
         }
       } catch (err) {
-        console.error("Failed to fetch real usage overview:", err);
         if (isMounted) {
+          setLoadError(err.response?.data?.message || "โหลดข้อมูลการใช้งานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+          setSeries([]);
           setUsage({
             logins: 0,
             activeLearners: 0,
@@ -53,6 +56,8 @@ export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter 
             engagementRate: "0%",
           });
         }
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -60,7 +65,7 @@ export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter 
     return () => {
       isMounted = false;
     };
-  }, [dateFilter]);
+  }, [dateFilter.range, dateFilter.start, dateFilter.end]);
 
   const current = usage;
 
@@ -79,33 +84,20 @@ export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter 
             </span>
           </div>
           <p className="text-xs text-[#6B7773] mt-0.5">
-            สถิติการมีส่วนร่วมและการเข้าใช้งานหลักสูตรในช่วง {rangeLabels[dateFilter]}
+            สถิติการมีส่วนร่วมและการเข้าใช้งานหลักสูตร: {describeRange(dateFilter)}
           </p>
         </div>
 
-        {/* Filter buttons */}
-        <div className="inline-flex rounded-xl border border-[#E5E9E7] bg-[#FAFAFA] p-1 self-start sm:self-auto">
-          {[
-            { id: "today", label: "วันนี้" },
-            { id: "7d", label: "7 วัน" },
-            { id: "30d", label: "30 วัน" },
-            { id: "custom", label: "กำหนดเอง" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setDateFilter?.(tab.id)}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${
-                dateFilter === tab.id
-                  ? "bg-white text-[#004643] shadow-2xs font-bold border border-[#E5E9E7]"
-                  : "text-[#6B7773] hover:text-[#26332F]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <span className="text-[11px] text-[#6B7773] self-start sm:self-auto">
+          เปลี่ยนช่วงวันที่ได้ที่ด้านบนของหน้า
+        </span>
       </div>
+
+      {loadError && (
+        <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+          {loadError}
+        </p>
+      )}
 
       {/* Grid of usage indicators */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -116,8 +108,8 @@ export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter 
           <div className="text-xl sm:text-2xl font-black font-mono text-[#26332F]">
             {current.logins}
           </div>
-          <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-            <LuTrendingUp className="h-3 w-3" /> ปกติ
+          <span className="text-[10px] text-[#6B7773]">
+            ครั้ง · ไม่ซ้ำ {current.uniqueLogins} คน
           </span>
         </div>
 
@@ -148,9 +140,7 @@ export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter 
           <div className="text-xl sm:text-2xl font-black font-mono text-[#26332F]">
             {current.quizzesSubmitted}
           </div>
-          <span className="text-[10px] text-emerald-600 font-semibold">
-            ประเมินผลสำเร็จ
-          </span>
+          <span className="text-[10px] text-[#6B7773]">ครั้ง</span>
         </div>
 
         <div className="rounded-xl border border-[#E5E9E7] bg-[#FAFAFA] p-3.5 space-y-1">
@@ -165,16 +155,19 @@ export default function UsageOverviewSection({ dateFilter = "7d", setDateFilter 
 
         <div className="rounded-xl border border-[#E5E9E7] bg-[#ABD1C6]/15 p-3.5 space-y-1">
           <span className="text-[11px] font-bold text-[#004643] block">
-            อัตราความต่อเนื่อง
+            สัดส่วนผู้เรียนที่เข้าใช้งาน
           </span>
           <div className="text-xl sm:text-2xl font-black font-mono text-[#004643]">
             {current.engagementRate}
           </div>
           <span className="text-[10px] text-[#004643] font-semibold">
-            ระดับสูงมาก
+            ของผู้เรียนทั้งหมด {current.totalStudents} คน
           </span>
         </div>
       </div>
+
+      {/* กราฟรายวันตามช่วงที่เลือก (ข้อ 31) */}
+      <DailyTrendChart series={series} isLoading={isLoading} title="แนวโน้มรายวัน" />
     </div>
   );
 }

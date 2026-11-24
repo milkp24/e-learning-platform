@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.utils.decorators import roles_required, get_current_user
 from app.services.lesson_service import LessonService, LessonServiceError
+from app.utils.errors import internal_error
 
 # =====================================================================
 # lessons.py: Route Controller สำหรับ Chapter (Lesson), Episode, และ Content
@@ -37,7 +38,7 @@ def list_lessons(classroom_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/classrooms/<classroom_id>/lessons", methods=["POST"])
@@ -52,7 +53,7 @@ def create_lesson(classroom_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/lessons/<lesson_id>", methods=["GET"])
@@ -66,7 +67,7 @@ def get_lesson(lesson_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/lessons/<lesson_id>", methods=["PUT"])
@@ -81,7 +82,7 @@ def update_lesson(lesson_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/lessons/<lesson_id>", methods=["DELETE"])
@@ -95,7 +96,7 @@ def delete_lesson(lesson_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 # =====================================================================
@@ -147,7 +148,7 @@ def list_episodes(lesson_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/lessons/<lesson_id>/episodes", methods=["POST"])
@@ -162,7 +163,7 @@ def create_episode(lesson_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/episodes/<episode_id>", methods=["GET"])
@@ -176,7 +177,7 @@ def get_episode(episode_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/episodes/<episode_id>", methods=["PUT"])
@@ -191,7 +192,7 @@ def update_episode(episode_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/episodes/<episode_id>", methods=["DELETE"])
@@ -205,7 +206,7 @@ def delete_episode(episode_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 # =====================================================================
@@ -223,7 +224,7 @@ def list_episode_contents(episode_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/episodes/<episode_id>/contents", methods=["POST"])
@@ -238,7 +239,7 @@ def add_episode_content(episode_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 # =====================================================================
@@ -256,7 +257,7 @@ def list_contents(lesson_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/lessons/<lesson_id>/contents", methods=["POST"])
@@ -271,7 +272,7 @@ def add_content(lesson_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 # =====================================================================
@@ -289,7 +290,7 @@ def get_content(content_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/contents/<content_id>", methods=["PUT"])
@@ -304,7 +305,7 @@ def update_content(content_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @lessons_bp.route("/contents/<content_id>", methods=["DELETE"])
@@ -318,4 +319,4 @@ def delete_content(content_id):
     except LessonServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)

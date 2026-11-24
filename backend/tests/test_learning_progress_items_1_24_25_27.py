@@ -9,6 +9,7 @@
 #   pytest tests/test_learning_progress_items_1_24_25_27.py -v
 # =====================================================================
 
+import uuid
 import unittest
 
 from flask_jwt_extended import create_access_token
@@ -76,7 +77,7 @@ class LearningProgressBase(unittest.TestCase):
         return getattr(self.client, method)(API + url, headers=headers, json=body)
 
     def _course(self, visibility="public", publish=True):
-        res = self._req("post", "/classrooms", "owner", {"title": PREFIX + visibility, "visibility": visibility})
+        res = self._req("post", "/classrooms", "owner", {"title": f"{PREFIX}{visibility}_{uuid.uuid4().hex[:8]}", "visibility": visibility})
         self.assertEqual(res.status_code, 201, res.get_json())
         cid = res.get_json()["classroom"]["classroom_id"]
         if publish:
@@ -148,7 +149,7 @@ class TestCourseVisibilityItem1(LearningProgressBase):
         self.assertEqual(res.status_code, 400)
 
     def test_default_visibility_is_public(self):
-        res = self._req("post", "/classrooms", "owner", {"title": PREFIX + "default"})
+        res = self._req("post", "/classrooms", "owner", {"title": f"{PREFIX}default_{uuid.uuid4().hex[:8]}"})
         self.assertEqual(res.get_json()["classroom"]["visibility"], "public")
 
 

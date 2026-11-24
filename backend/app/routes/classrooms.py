@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.utils.decorators import roles_required, get_current_user
 from app.services.classroom_service import ClassroomService, ClassroomServiceError
+from app.utils.errors import internal_error
 
 # =====================================================================
 # classrooms.py: Route Controller สำหรับ Course / Classroom และ Enrollment
@@ -36,7 +37,7 @@ def list_classrooms():
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @classrooms_bp.route("/my-enrollments", methods=["GET"])
@@ -52,7 +53,7 @@ def list_my_enrollments():
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @classrooms_bp.route("", methods=["POST"])
@@ -70,8 +71,8 @@ def create_classroom():
         return jsonify(result), status_code
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to create classroom."}), 500
+    except Exception as e:
+        return internal_error(e)
 
 
 @classrooms_bp.route("/<classroom_id>", methods=["GET"])
@@ -89,7 +90,7 @@ def get_classroom(classroom_id):
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @classrooms_bp.route("/<classroom_id>", methods=["PUT"])
@@ -106,8 +107,8 @@ def update_classroom(classroom_id):
         return jsonify(result), 200
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to update classroom."}), 500
+    except Exception as e:
+        return internal_error(e)
 
 
 @classrooms_bp.route("/<classroom_id>/status", methods=["POST"])
@@ -149,8 +150,8 @@ def delete_classroom(classroom_id):
         return jsonify(result), 200
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to delete classroom."}), 500
+    except Exception as e:
+        return internal_error(e)
 
 
 # =====================================================================
@@ -167,7 +168,7 @@ def list_classroom_members(classroom_id):
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @classrooms_bp.route("/<classroom_id>/join", methods=["POST"])
@@ -183,8 +184,8 @@ def join_classroom(classroom_id):
         return jsonify(result), status_code
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to join classroom."}), 500
+    except Exception as e:
+        return internal_error(e)
 
 
 @classrooms_bp.route("/<classroom_id>/members", methods=["POST"])
@@ -198,8 +199,8 @@ def add_classroom_member(classroom_id):
         return jsonify(result), status_code
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to add member."}), 500
+    except Exception as e:
+        return internal_error(e)
 
 
 @classrooms_bp.route("/<classroom_id>/members/<user_id>", methods=["DELETE"])
@@ -212,8 +213,8 @@ def remove_classroom_member(classroom_id, user_id):
         return jsonify(result), 200
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
-    except Exception:
-        return jsonify({"error": "Internal Server Error", "message": "Failed to remove member."}), 500
+    except Exception as e:
+        return internal_error(e)
 
 
 # =====================================================================
@@ -233,7 +234,7 @@ def get_instructor_dashboard_data():
     except ClassroomServiceError as e:
         return jsonify({"error": e.error, "message": e.message}), e.status_code
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)
 
 
 @instructor_bp.route("/dashboard", methods=["GET"])
@@ -259,4 +260,4 @@ def get_platform_stats():
         result = ClassroomService.get_platform_stats()
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return internal_error(e)

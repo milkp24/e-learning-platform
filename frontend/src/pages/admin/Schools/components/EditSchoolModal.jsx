@@ -9,6 +9,7 @@ import {
   LuCheck,
 } from "react-icons/lu";
 import adminService from "../../../../services/adminService";
+import { email, firstError, optionalText, phone, requiredText } from "../../../../utils/formValidation";
 
 /**
  * EditSchoolModal Component
@@ -60,17 +61,17 @@ function EditSchoolModal({ isOpen, onClose, school, onSchoolUpdated }) {
     const cleanEmail = formData.contact_email.trim().toLowerCase();
     const cleanPhone = formData.contact_phone.trim();
 
-    if (!cleanName || cleanName.length < 2) {
-      setError("กรุณาระบุชื่อโรงเรียน/สถานศึกษา (อย่างน้อย 2 ตัวอักษร)");
+    // ข้อ 37: ตรวจข้อมูลก่อนส่ง (กติกาเดียวกับ Backend)
+    const invalid = firstError(
+      requiredText(cleanName, "ชื่อโรงเรียน/สถานศึกษา", { min: 2, max: 255 }),
+      optionalText(cleanCode, "รหัสโรงเรียน", 50),
+      optionalText(cleanAddress, "ที่อยู่", 1000),
+      email(cleanEmail, { label: "อีเมลติดต่อ" }),
+      phone(cleanPhone)
+    );
+    if (invalid) {
+      setError(invalid);
       return;
-    }
-
-    if (cleanEmail) {
-      const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
-      if (!emailRegex.test(cleanEmail)) {
-        setError("รูปแบบอีเมลติดต่อไม่ถูกต้อง");
-        return;
-      }
     }
 
     setIsSubmitting(true);

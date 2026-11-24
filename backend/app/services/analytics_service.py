@@ -202,41 +202,18 @@ class AnalyticsService:
         }
 
     @classmethod
-    def get_usage_overview(cls, caller: User | None = None, date_range: str = "7d") -> dict:
-        """Usage overview aggregated from actual database records."""
-        normalized_range = (date_range or "7d").lower()
-        now = datetime.now(timezone.utc)
-        if normalized_range == "today":
-            since = now - timedelta(days=1)
-        elif normalized_range == "30d":
-            since = now - timedelta(days=30)
-        else:  # 7d or default
-            since = now - timedelta(days=7)
+    def get_usage_overview(
+        cls,
+        caller: User | None = None,
+        date_range: str = "7d",
+        start: str | None = None,
+        end: str | None = None,
+    ) -> dict:
+        """ภาพรวมการใช้งานจากข้อมูลจริง ตามช่วงวันที่ที่เลือก (ข้อ 31)"""
+        from app.services.reports_service import ReportsService, ReportsServiceError, parse_date_range
 
-        active_learners = db.session.query(func.count(func.distinct(ClassroomMember.user_id))).filter(
-            ClassroomMember.joined_at >= since
-        ).scalar() or 0
-
-        completed_lessons = LearningProgress.query.filter(
-            LearningProgress.last_accessed_at >= since
-        ).count()
-
-        logins = RefreshToken.query.filter(RefreshToken.created_at >= since).count()
-        enrollments = ClassroomMember.query.filter(ClassroomMember.joined_at >= since).count()
-        quizzes_submitted = QuizAttempt.query.filter(QuizAttempt.submitted_at >= since).count()
-        missions_completed = MissionProgress.query.filter(
-            MissionProgress.completed_at >= since,
-            MissionProgress.status == "completed"
-        ).count()
-
-        return {
-            "range": normalized_range,
-            "metrics": {
-                "logins": logins,
-                "activeLearners": active_learners,
-                "lessonViews": completed_lessons,
-                "enrollments": enrollments,
-                "quizzesSubmitted": quizzes_submitted,
-                "missionsCompleted": missions_completed
-            }
-        }
+        try:
+            dr = parse_date_range(date_range, start, end)
+        except ReportsServiceError as e:
+            raise AnalyticsServiceError(e.message, 400, "Validation Error")
+        return ReportsService.usage_overview(dr)

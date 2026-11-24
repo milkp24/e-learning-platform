@@ -2,6 +2,14 @@ from app.extensions import db
 from app.models.security import SystemSetting
 from app.models.admin import AuditLog
 from app.models.user import User
+from app.utils.validators import parse_optional_number
+
+# ข้อ 37: ค่าที่ตั้งได้ และช่วงที่ยอมรับ (ค่าอื่นหรือคีย์อื่นถูกปฏิเสธ ไม่บันทึกลงระบบ)
+EDITABLE_SETTINGS = {
+    "session_timeout_minutes": ("เวลา Session หมดอายุ (นาที)", 5, 480, 30),
+    "guest_timeout_minutes": ("เวลาแจ้งเตือน Guest (นาที)", 1, 240, 15),
+    "warning_countdown_seconds": ("เวลานับถอยหลังก่อนออกจากระบบ (วินาที)", 30, 600, 120),
+}
 
 
 class SettingsServiceError(Exception):
@@ -28,11 +36,14 @@ class SettingsService:
         settings = SystemSetting.query.all()
         settings_map = {s.key: s.value for s in settings}
 
-        return {
-            "session_timeout_minutes": int(settings_map.get("session_timeout_minutes", "30")),
-            "guest_timeout_minutes": int(settings_map.get("guest_timeout_minutes", "15")),
-            "warning_countdown_seconds": int(settings_map.get("warning_countdown_seconds", "120")),
-        }
+        # ค่าเสียในฐานข้อมูล (บันทึกไว้ก่อนมีการตรวจ) ใช้ค่าเริ่มต้นแทน ไม่ให้ทุกหน้าพัง
+        result = {}
+        for key, (label, low, high, default) in EDITABLE_SETTINGS.items():
+            ok, value, _ = parse_optional_number(
+                settings_map.get(key), label, integer=True, min_value=low, max_value=high, default=default
+            )
+            result[key] = value if ok else default
+        return result
 
     @classmethod
     def get_all_settings(cls, caller: User | None = None) -> dict:
@@ -55,16 +66,35 @@ class SettingsService:
                 "Bad Request"
             )
 
+        # ตรวจทุกค่าก่อน ไม่ผ่านแม้ค่าเดียว = ไม่บันทึกเลย
+        unknown = [k for k in data if k not in EDITABLE_SETTINGS]
+        if unknown:
+            raise SettingsServiceError("มีค่าตั้งค่าที่ระบบไม่รู้จัก กรุณารีเฟรชหน้าแล้วลองใหม่อีกครั้ง", 400, "Validation Error")
+        cleaned = {}
+        for key, raw in data.items():
+            label, low, high, _ = EDITABLE_SETTINGS[key]
+            ok, value, message = parse_optional_number(raw, label, integer=True, min_value=low, max_value=high)
+            if not ok:
+                raise SettingsServiceError(message, 400, "Validation Error")
+            if value is None:
+                raise SettingsServiceError(f"กรุณากรอก{label}", 400, "Validation Error")
+            cleaned[key] = str(value)
+        warning = int(cleaned.get("warning_countdown_seconds") or cls.get_public_settings()["warning_countdown_seconds"])
+        session_minutes = int(cleaned.get("session_timeout_minutes") or cls.get_public_settings()["session_timeout_minutes"])
+        if warning >= session_minutes * 60:
+            raise SettingsServiceError("เวลานับถอยหลังต้องน้อยกว่าเวลา Session หมดอายุ", 400, "Validation Error")
+
         updated = []
-        for k, v in data.items():
+        for k, v in cleaned.items():
             setting = db.session.get(SystemSetting, k)
             if setting:
-                setting.value = str(v)
+                setting.value = v
                 updated.append(setting.to_dict())
             else:
-                new_s = SystemSetting(key=k, value=str(v))
+                new_s = SystemSetting(key=k, value=v)
                 db.session.add(new_s)
                 updated.append(new_s.to_dict())
+        data = cleaned
 
         # Record Audit Log for Settings Change
         audit = AuditLog(
@@ -79,7 +109,7 @@ class SettingsService:
         try:
             db.session.commit()
             return {
-                "message": "Settings updated successfully.",
+                "message": "บันทึกการตั้งค่าระบบเรียบร้อยแล้ว",
                 "settings": updated
             }
         except Exception:

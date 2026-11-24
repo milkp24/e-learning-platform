@@ -669,7 +669,10 @@ class TestQuizEvaluationSuite(unittest.TestCase):
         with patch("app.extensions.db.session.commit", side_effect=Exception("Database crash simulated")):
             res = self.client.post(f"/api/v1/quizzes/{self.quiz.quiz_id}/submit", headers=self.student1_headers, json=payload)
             self.assertEqual(res.status_code, 500)
-            self.assertIn("Database transaction failed", res.get_json()["message"])
+            # ข้อ 39: ผู้ใช้เห็นข้อความที่ปลอดภัย ไม่เห็นรายละเอียด Exception
+            message = res.get_json()["message"]
+            self.assertIn("ระบบขัดข้องชั่วคราว", message)
+            self.assertNotIn("Database crash simulated", message)
 
         # Verify rollback prevented persistence of results and answers
         self.assertEqual(QuizResult.query.count(), 0)

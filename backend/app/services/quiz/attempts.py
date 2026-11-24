@@ -685,7 +685,7 @@ def submit_quiz_attempt(
         return None, "This attempt has already been submitted.", 409
     except Exception as e:
         db.session.rollback()
-        return None, f"Database transaction failed: {str(e)}", 500
+        return None, _internal_error_message(e), 500
 
 
 def get_quiz_result_for_user(
@@ -1097,3 +1097,11 @@ def get_quiz_details_for_student(quiz_id: uuid.UUID, user_id: uuid.UUID) -> tupl
 
     quiz_data["questions"] = questions_data
     return quiz_data, "Quiz details retrieved successfully.", 200
+
+
+def _internal_error_message(exc):
+    """ข้อ 39: บันทึกรายละเอียดลง Log แต่ส่งข้อความที่ปลอดภัยให้ผู้ใช้"""
+    from flask import current_app
+    from app.utils.errors import INTERNAL_ERROR_MESSAGE
+    current_app.logger.exception("Quiz service error: %s", exc)
+    return INTERNAL_ERROR_MESSAGE

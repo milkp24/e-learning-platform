@@ -121,8 +121,8 @@ function CreateUserModal({
     }
 
     // 4. Role Security: Prevent regular admin from picking super_admin
-    if (formData.role === "super_admin" && !isSuperAdmin) {
-      setError("เฉพาะ Super Admin เท่านั้นที่สามารถกำหนดบทบาท Super Admin ได้");
+    if (["admin", "super_admin"].includes(formData.role) && !isSuperAdmin) {
+      setError("แต่งตั้งผู้ดูแลระบบได้เฉพาะ Super Admin เท่านั้น");
       return;
     }
 
@@ -285,7 +285,8 @@ function CreateUserModal({
                 >
                   <option value="student">Student (ผู้เรียน)</option>
                   <option value="instructor">Instructor (ผู้สอน)</option>
-                  <option value="admin">Admin (ผู้ดูแลระบบ)</option>
+                  {/* ข้อ 12: แต่งตั้งผู้ดูแลระบบได้เฉพาะ Super Admin */}
+                  {isSuperAdmin && <option value="admin">Admin (ผู้ดูแลระบบ)</option>}
                   {isSuperAdmin && (
                     <option value="super_admin">Super Admin (ผู้ดูแลระบบสูงสุด)</option>
                   )}

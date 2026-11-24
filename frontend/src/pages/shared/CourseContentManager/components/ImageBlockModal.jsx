@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { LuX, LuUpload, LuTrash2, LuRefreshCw } from "react-icons/lu";
+import { mediaService, validateImageFile, IMAGE_ACCEPT } from "../../../../services/mediaService";
 
 /**
  * ImageBlockModal Component
  * เครื่องมือเพิ่มและแก้ไขเนื้อหารูปภาพ (Image Content)
  * รองรับ:
- * - อัปโหลดรูปภาพผ่าน File Selector (PNG, JPG, WebP, GIF, SVG)
+ * - อัปโหลดรูปภาพผ่าน File Selector (PNG, JPG, WebP) ไปเก็บที่เซิร์ฟเวอร์ (ข้อ 23)
+ *   Backend ตรวจชนิด ขนาด และเนื้อไฟล์จริง ไม่ผ่าน = แจ้งเตือนและไม่บันทึก
+ *   (เดิมแปลงเป็น Base64 เก็บลงฐานข้อมูลโดยไม่ผ่านการตรวจ)
  * - วาง Image URL ได้โดยตรง
  * - Preview รูปภาพสดก่อนบันทึก
  * - กำหนด Alt Text (ข้อความอธิบายภาพสำหรับ Accessibility)
@@ -24,6 +27,7 @@ function ImageBlockModal({
   const [altText, setAltText] = useState("");
   const [error, setError] = useState("");
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -41,47 +45,45 @@ function ImageBlockModal({
 
   if (!isOpen) return null;
 
-  // จัดการเมื่อผู้ใช้เลือกไฟล์รูปภาพจากเครื่อง
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
+  // จัดการเมื่อผู้ใช้เลือกไฟล์รูปภาพจากเครื่อง: ตรวจก่อน แล้วอัปโหลดไปเก็บที่เซิร์ฟเวอร์ (ข้อ 23)
+  const handleFileSelect = async (e) => {
+    const input = e.target;
+    const file = input.files?.[0];
+    input.value = ""; // เลือกไฟล์เดิมซ้ำได้หลังแก้ไข
     if (!file) return;
 
     setError("");
     setImageLoadError(false);
 
-    // ตรวจสอบชนิดไฟล์
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
-    if (!allowedTypes.includes(file.type)) {
-      setError("ชนิดไฟล์ไม่ถูกต้อง รองรับเฉพาะไฟล์รูปภาพ (JPG, PNG, WebP, GIF, SVG)");
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setError(invalid);
       return;
     }
 
-    // ตรวจสอบขนาดไฟล์ (สูงสุด 5 MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError("ขนาดไฟล์รูปภาพเกินกำหนด (ต้องไม่เกิน 5 MB)");
-      return;
-    }
-
-    // แปลงเป็น Data URL เพื่อให้ Browser สามารถพรีวิวและจัดเก็บได้โดยตรง
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setImageUrl(event.target.result);
+    setIsUploading(true);
+    try {
+      const res = await mediaService.uploadImage(file);
+      setImageUrl(res.file_url || res.relative_url);
       if (!caption) {
         // ใช้ชื่อไฟล์เดิมเป็น Default Caption
         const cleanName = file.name.replace(/\.[^/.]+$/, "");
         setCaption(cleanName);
         setAltText(cleanName);
       }
-    };
-    reader.onerror = () => {
-      setError("ไม่สามารถอ่านไฟล์รูปภาพได้");
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setError(err.response?.data?.message || "อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSave = (e) => {
     e.preventDefault();
+    if (isUploading) {
+      setError("กำลังอัปโหลดรูปภาพ กรุณารอสักครู่");
+      return;
+    }
     if (!imageUrl.trim()) {
       setError("กรุณาเลือกรูปภาพหรือระบุ URL รูปภาพ");
       return;
@@ -148,10 +150,10 @@ function ImageBlockModal({
               />
               <label className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#ABD1C6] bg-[#ABD1C6]/20 px-4 py-2.5 text-xs font-bold text-[#004643] hover:bg-[#ABD1C6]/40 cursor-pointer transition shadow-2xs shrink-0">
                 <LuUpload className="h-4 w-4" />
-                <span>เลือกรูปภาพ</span>
+                <span>{isUploading ? "กำลังอัปโหลด..." : "เลือกรูปภาพ"}</span>
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                  accept={IMAGE_ACCEPT}
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -182,7 +184,7 @@ function ImageBlockModal({
                     <LuRefreshCw className="h-4 w-4" />
                     <input
                       type="file"
-                      accept="image/*"
+                      accept={IMAGE_ACCEPT}
                       onChange={handleFileSelect}
                       className="hidden"
                     />
@@ -247,7 +249,8 @@ function ImageBlockModal({
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-[#ABD1C6] px-6 py-2.5 text-xs font-bold text-[#20302C] hover:bg-[#9bc3b7] active:scale-98 transition cursor-pointer shadow-sm"
+              disabled={isUploading}
+              className="rounded-xl bg-[#ABD1C6] px-6 py-2.5 text-xs font-bold text-[#20302C] hover:bg-[#9bc3b7] active:scale-98 transition cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               บันทึกรูปภาพ
             </button>

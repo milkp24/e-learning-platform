@@ -39,6 +39,7 @@ function JournalModal({
             <input
               type="text"
               value={title}
+              maxLength={255}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="เช่น สรุปเรื่อง Hook ใน React"
               required

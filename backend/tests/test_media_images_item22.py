@@ -9,6 +9,7 @@
 # =====================================================================
 
 import io
+import uuid
 import shutil
 import tempfile
 import unittest
@@ -83,7 +84,7 @@ class TestMediaImagesItem22(unittest.TestCase):
         return self.client.post(
             "/api/v1/classrooms",
             headers=self.headers["instructor"],
-            json={"title": PREFIX + "course", "thumbnail_url": thumbnail_url},
+            json={"title": f"{PREFIX}course_{uuid.uuid4().hex[:8]}", "thumbnail_url": thumbnail_url},
         )
 
     # ---------- อัปโหลดรูป ----------

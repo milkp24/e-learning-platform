@@ -54,6 +54,9 @@ class Config:
     # URL ของ Frontend สำหรับสร้างลิงก์ Reset Password (ค่าเริ่มต้น http://localhost:5173)
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 
+    # ข้อ 23: ขนาดคำขอสูงสุด (ไฟล์ 50 MB + ส่วนหัว multipart) เกินนี้ตอบ 413 เป็น JSON ภาษาไทย
+    MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH_MB", "55")) * 1024 * 1024
+
     # Rate Limiting Configuration (สำหรับป้องกัน Brute-Force / Abuse)
     RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
     RATELIMIT_CHANGE_PASSWORD = os.getenv("RATELIMIT_CHANGE_PASSWORD", "5 per minute")

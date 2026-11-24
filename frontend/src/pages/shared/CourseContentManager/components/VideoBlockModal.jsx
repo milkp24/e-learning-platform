@@ -67,6 +67,7 @@ function VideoBlockModal({
   // จัดการเลือกไฟล์วิดีโอจากเครื่องและอัปโหลดไปยัง Backend จริง
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // เลือกไฟล์เดิมซ้ำได้หลังแก้ไขแล้ว (ข้อ 23)
     if (!file) return;
 
     setError("");

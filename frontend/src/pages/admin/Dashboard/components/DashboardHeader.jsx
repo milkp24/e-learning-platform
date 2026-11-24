@@ -1,6 +1,7 @@
 import { LuCalendar, LuRefreshCw, LuSearch } from "react-icons/lu";
 import useAuthStore from "../../../../store/useAuthStore";
 import { ProfileAvatarLink } from "../../../../components/common/UserAvatar";
+import { DateRangeFilter } from "../../../../features/reports";
 
 // Helper จัดรูปแบบวันปัจจุบันในรูปแบบภาษาไทย
 const getThaiTodayDateString = () => {
@@ -77,31 +78,9 @@ export default function DashboardHeader({
       </div>
 
       {/* Right: Actions (Date Filter + Refresh) */}
-      <div className="flex items-center gap-2.5 flex-wrap">
-        {/* Quick Date Filter Tabs */}
-        {setDateFilter && (
-          <div className="inline-flex rounded-xl border border-[#E5E9E7] bg-white p-1 shadow-2xs">
-            {[
-              { id: "today", label: "วันนี้" },
-              { id: "7d", label: "7 วัน" },
-              { id: "30d", label: "30 วัน" },
-              { id: "custom", label: "กำหนดเอง" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setDateFilter(tab.id)}
-                className={`px-3 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${
-                  dateFilter === tab.id
-                    ? "bg-[#ABD1C6] text-[#004643] shadow-xs"
-                    : "text-[#6B7773] hover:text-[#26332F] hover:bg-[#FAFAFA]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="flex items-start gap-2.5 flex-wrap">
+        {/* ช่วงวันที่ (ข้อ 31): วันนี้ / 7 วัน / 30 วัน / กำหนดเอง เลือกวันได้จริง */}
+        {setDateFilter && dateFilter && <DateRangeFilter value={dateFilter} onChange={setDateFilter} />}
 
         {onOpenSearch && (
           <button

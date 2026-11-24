@@ -1,75 +1,106 @@
-import { LuTriangleAlert as LuAlertTriangle } from "react-icons/lu";
+import { useEffect, useState } from "react";
 import ReportsHeader from "./components/ReportsHeader";
 import ReportsMetricsSection from "./components/ReportsMetricsSection";
 import PopularCoursesSection from "./components/PopularCoursesSection";
+import adminService from "../../../services/adminService";
+import { notify } from "../../../store/useToastStore";
+import {
+  DEFAULT_RANGE,
+  DailyTrendChart,
+  DateRangeFilter,
+  describeRange,
+  rangeToParams,
+} from "../../../features/reports";
 
 /**
- * Reports Page Component (Admin Analytics & Reports)
- * Follows the Jade Design System (#ABD1C6, #26332F, #6B7773, #FAFAFA, #E5E9E7)
- * 
- * สถานะทางสถาปัตยกรรม (Architecture Status): LIMITATION
- * ข้อจำกัดของระบบ: ปัจจุบันระบบ Backend ยังไม่มี API Endpoint และ Database Schema สำหรับจัดทำรายงานสถิติขั้นสูงและการ Export
- * ข้อมูลที่แสดงในหน้านี้เป็น Mock Data สำหรับการแสดงผลเลย์เอาต์ UI เท่านั้น ไม่มีการบันทึกลงฐานข้อมูลจริง
+ * Reports Page (ข้อ 31, 32): รายงานและสถิติจากข้อมูลจริง
+ * - เลือกช่วงวันที่ได้ (วันนี้ / 7 วัน / 30 วัน / กำหนดเอง) ทุกตัวเลขและกราฟเปลี่ยนตามช่วง
+ * - API: GET /api/v1/admin/reports/summary และ /api/v1/admin/reports/export (CSV)
+ * - PDF: พิมพ์หน้านี้ด้วยเบราว์เซอร์ (ซ่อนเมนูและปุ่มตอนพิมพ์) แล้วเลือก "บันทึกเป็น PDF"
  */
 function Reports() {
-  const popularCourses = [
-    {
-      title: "Python Programming Masterclass",
-      enrollments: 450,
-      completionRate: 82,
-      hours: 1240,
-    },
-    {
-      title: "Full-Stack Web Development (React & Node)",
-      enrollments: 380,
-      completionRate: 75,
-      hours: 980,
-    },
-    {
-      title: "Cloud Architecture & DevOps Basics",
-      enrollments: 290,
-      completionRate: 68,
-      hours: 740,
-    },
-    {
-      title: "Cybersecurity & Network Defense",
-      enrollments: 210,
-      completionRate: 64,
-      hours: 520,
-    },
-  ];
+  const [range, setRange] = useState(DEFAULT_RANGE);
+  const [report, setReport] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = (format) => {
-    alert(`ข้อจำกัดระบบ (LIMITATION): ฟีเจอร์ส่งออกรายงาน (${format}) ยังไม่มี Backend API และระบบประมวลผลรองรับในปัจจุบัน`);
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    setError("");
+    adminService
+      .getReportsSummary(rangeToParams(range))
+      .then((data) => {
+        if (active) setReport(data);
+      })
+      .catch((err) => {
+        if (active) {
+          setReport(null);
+          setError(err.response?.data?.message || "โหลดรายงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [range.range, range.start, range.end]);
+
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+    try {
+      const filename = await adminService.downloadReportCsv(rangeToParams(range));
+      notify.show("success", `ดาวน์โหลด ${filename} แล้ว`);
+    } catch (err) {
+      notify.show("error", err.response?.data?.message || "ส่งออก CSV ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
+  const handleExportPdf = () => {
+    notify.show("info", 'เลือกปลายทาง "บันทึกเป็น PDF" ในหน้าต่างพิมพ์');
+    setTimeout(() => window.print(), 300);
+  };
+
+  const generatedAt = report?.generatedAt
+    ? new Date(report.generatedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })
+    : "";
+
   return (
-    <div className="space-y-6">
-      {/* แจ้งเตือนข้อจำกัดทางสถาปัตยกรรม (LIMITATION Alert) */}
-      <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 shadow-xs">
-        <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
-            <LuAlertTriangle className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-amber-900">
-              สถานะฟีเจอร์: ข้อจำกัดของระบบ (LIMITATION)
-            </h4>
-            <p className="mt-1 text-xs text-amber-800 leading-relaxed">
-              ฟีเจอร์รายงานสถิติขั้นสูงและการส่งออกข้อมูล (Reports & Analytics) ยังไม่มี Backend API และ Database Schema รองรับในเวอร์ชันปัจจุบัน ข้อมูลที่แสดงผลด้านล่างเป็นข้อมูลตัวอย่าง (Mock Data) สำหรับการพรีวิวเลย์เอาต์หน้าจอเท่านั้น และไม่สามารถส่งออกเป็นไฟล์จริงได้
-            </p>
-          </div>
+    <div className="space-y-6 report-print">
+      <ReportsHeader
+        onExportCsv={handleExportCsv}
+        onExportPdf={handleExportPdf}
+        isExporting={isExporting}
+        disabled={isLoading || !report}
+      />
+
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="text-xs text-[#6B7773]">
+          <p className="font-bold text-[#26332F] text-sm">ช่วงวันที่: {describeRange(range)}</p>
+          {generatedAt && <p className="mt-0.5">ข้อมูล ณ {generatedAt}</p>}
+        </div>
+        <div className="print:hidden">
+          <DateRangeFilter value={range} onChange={setRange} showCaption={false} />
         </div>
       </div>
 
-      {/* 1. Page Header */}
-      <ReportsHeader onExport={handleExport} />
+      {error && (
+        <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+          {error}
+        </p>
+      )}
 
-      {/* 2. Overview Metrics */}
-      <ReportsMetricsSection />
+      <ReportsMetricsSection metrics={report?.metrics} isLoading={isLoading} />
 
-      {/* 3. Popular Courses Performance */}
-      <PopularCoursesSection courses={popularCourses} />
+      <div className="break-inside-avoid">
+        <DailyTrendChart series={report?.series || []} isLoading={isLoading} title="กิจกรรมรายวัน" />
+      </div>
+
+      <PopularCoursesSection courses={report?.courses || []} isLoading={isLoading} />
     </div>
   );
 }

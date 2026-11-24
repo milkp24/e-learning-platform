@@ -4,7 +4,9 @@ from app.extensions import db
 from app.models.school import School, SchoolClassroom, SchoolUser
 from app.models.user import User, UserProfile
 from app.models.admin import AuditLog
-from app.utils.validators import validate_email
+from app.utils.validators import validate_email, validate_phone
+from flask import current_app
+from app.utils.errors import INTERNAL_ERROR_MESSAGE
 
 
 class SchoolServiceError(Exception):
@@ -148,6 +150,7 @@ class SchoolService:
 
         if not data or not isinstance(data, dict):
             raise SchoolServiceError("Invalid JSON payload.", 400, "Bad Request")
+        _check_school_fields(data)
 
         name = str(data.get("name") or "").strip()
         code = str(data.get("code") or "").strip() if data.get("code") else None
@@ -212,7 +215,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     @classmethod
     def update_school(cls, caller: User, school_id_raw: str | uuid.UUID, data: dict, ip_address: str = "127.0.0.1") -> tuple[dict, int]:
@@ -238,6 +242,8 @@ class SchoolService:
 
         if not data or not isinstance(data, dict):
             raise SchoolServiceError("Invalid JSON payload.", 400, "Bad Request")
+
+        _check_school_fields(data, current_school_id=school.school_id)
 
         changed = {}
         if "name" in data:
@@ -323,7 +329,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     @classmethod
     def delete_school(cls, caller: User, school_id_raw: str | uuid.UUID, ip_address: str = "127.0.0.1") -> tuple[dict, int]:
@@ -382,7 +389,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     # =========================================================================
     # 3. School Classroom Management
@@ -449,6 +457,7 @@ class SchoolService:
 
         if not data or not isinstance(data, dict):
             raise SchoolServiceError("Invalid JSON payload.", 400, "Bad Request")
+        _check_classroom_text_fields(data)
 
         classroom_name = str(data.get("classroom_name") or "").strip()
         grade_level = str(data.get("grade_level") or "").strip() if data.get("grade_level") else None
@@ -514,7 +523,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     @classmethod
     def update_school_classroom(cls, caller: User, school_id_raw: str | uuid.UUID, classroom_id_raw: str | uuid.UUID, data: dict, ip_address: str = "127.0.0.1") -> tuple[dict, int]:
@@ -547,6 +557,8 @@ class SchoolService:
             raise SchoolServiceError("Invalid JSON payload.", 400, "Bad Request")
 
         changed = {}
+        _check_classroom_text_fields(data)
+
         if "classroom_name" in data:
             name = str(data["classroom_name"] or "").strip()
             if not name or len(name) > 100:
@@ -606,7 +618,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     @classmethod
     def delete_school_classroom(cls, caller: User, school_id_raw: str | uuid.UUID, classroom_id_raw: str | uuid.UUID, ip_address: str = "127.0.0.1") -> tuple[dict, int]:
@@ -670,7 +683,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     # =========================================================================
     # 4. School Membership Management
@@ -828,7 +842,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     @classmethod
     def update_school_member_role(cls, caller: User, school_id_raw: str | uuid.UUID, membership_id_raw: str | uuid.UUID, data: dict, ip_address: str = "127.0.0.1") -> tuple[dict, int]:
@@ -920,7 +935,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     @classmethod
     def remove_school_member(cls, caller: User, school_id_raw: str | uuid.UUID, membership_id_raw: str | uuid.UUID, ip_address: str = "127.0.0.1") -> tuple[dict, int]:
@@ -980,7 +996,8 @@ class SchoolService:
             raise
         except Exception as e:
             db.session.rollback()
-            raise SchoolServiceError(str(e), 500, "Internal Server Error")
+            current_app.logger.exception("School service error: %s", e)
+            raise SchoolServiceError(INTERNAL_ERROR_MESSAGE, 500, "Internal Server Error")
 
     @classmethod
     def get_available_users_for_school(cls, caller: User, search: str = "", school_id_param: str = None) -> dict:
@@ -1029,3 +1046,52 @@ class SchoolService:
             })
 
         return {"users": results}
+
+
+# ข้อ 37: ปีการศึกษา 4 หลัก (พ.ศ. หรือ ค.ศ.) และระบุภาคเรียนต่อท้ายได้ เช่น 2569 หรือ 2569/1
+_ACADEMIC_YEAR_PATTERN = __import__("re").compile(r"^\d{4}(/[1-3])?$")
+
+
+def _check_classroom_text_fields(data: dict) -> None:
+    for key, label, max_len in (("classroom_name", "ชื่อห้องเรียน", 100), ("grade_level", "ระดับชั้น", 50)):
+        value = data.get(key)
+        if value is not None and not isinstance(value, (str, int)):
+            raise SchoolServiceError(f"{label}ต้องเป็นข้อความ", 400, "Validation Error")
+        if value is not None and len(str(value).strip()) > max_len:
+            raise SchoolServiceError(f"{label}ต้องยาวไม่เกิน {max_len} ตัวอักษร", 400, "Validation Error")
+    year = data.get("academic_year")
+    if year is not None and str(year).strip():
+        if isinstance(year, (dict, list, bool)) or not _ACADEMIC_YEAR_PATTERN.match(str(year).strip()):
+            raise SchoolServiceError("ปีการศึกษาต้องเป็นตัวเลข 4 หลัก เช่น 2569 หรือ 2569/1", 400, "Validation Error")
+
+
+def _check_school_fields(data: dict, current_school_id=None) -> None:
+    """ข้อ 37: ตรวจข้อมูลโรงเรียนก่อนบันทึก (ชนิด ความยาว เบอร์โทร และชื่อห้ามซ้ำ)"""
+    for key, label, max_len in (
+        ("name", "ชื่อโรงเรียน", 255),
+        ("code", "รหัสโรงเรียน", 50),
+        ("address", "ที่อยู่", 1000),
+        ("contact_email", "อีเมลติดต่อ", 255),
+        ("contact_phone", "เบอร์โทรศัพท์", 50),
+    ):
+        value = data.get(key)
+        if value is None:
+            continue
+        if not isinstance(value, str):
+            raise SchoolServiceError(f"{label}ต้องเป็นข้อความ", 400, "Validation Error")
+        if len(value.strip()) > max_len:
+            raise SchoolServiceError(f"{label}ต้องยาวไม่เกิน {max_len} ตัวอักษร", 400, "Validation Error")
+
+    phone = data.get("contact_phone")
+    if isinstance(phone, str) and phone.strip():
+        ok, message = validate_phone(phone)
+        if not ok:
+            raise SchoolServiceError(message, 400, "Validation Error")
+
+    name = data.get("name")
+    if isinstance(name, str) and name.strip():
+        query = School.query.filter(func.lower(School.name) == name.strip().lower())
+        if current_school_id is not None:
+            query = query.filter(School.school_id != current_school_id)
+        if query.first():
+            raise SchoolServiceError(f"ชื่อโรงเรียน '{name.strip()}' มีอยู่ในระบบแล้ว", 409, "Conflict")

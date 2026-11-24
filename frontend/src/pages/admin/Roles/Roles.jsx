@@ -39,7 +39,7 @@ const TOTAL_PERMISSIONS = getAllPermissionKeys().length;
  * 4. Preserves 100% of existing backend User Role search and assignment logic
  */
 function Roles() {
-  const { hasRole, fetchCurrentUser } = useAuthStore();
+  const { hasRole, fetchCurrentUser, isSuperAdmin } = useAuthStore();
   const {
     roles,
     updateRolePermissions,
@@ -56,6 +56,11 @@ function Roles() {
   const selectedRole = useMemo(() => {
     return roles.find((r) => r.id === selectedRoleId) || roles[0];
   }, [roles, selectedRoleId]);
+
+  // ข้อ 12: สิทธิ์ของบทบาทผู้ดูแลระบบ (admin, super_admin) แก้ได้โดย Super Admin เท่านั้น
+  // (Backend ตอบ 403 เช่นกัน) กัน Admin ให้สิทธิ์ตัวเองเพิ่ม
+  const isRoleLocked =
+    !isSuperAdmin() && ["admin", "super_admin"].includes(String(selectedRole?.id || "").toLowerCase());
 
   // Working permissions state for the currently selected role
   const [workingPermissions, setWorkingPermissions] = useState(
@@ -500,7 +505,9 @@ function Roles() {
                     <button
                       type="button"
                       onClick={handleSaveRolePermissions}
-                      className="px-4 py-2 rounded-xl bg-[#004643] text-white text-xs font-bold hover:bg-[#003836] active:scale-98 transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                      disabled={isRoleLocked}
+                      title={isRoleLocked ? "สิทธิ์ของบทบาทผู้ดูแลระบบแก้ไขได้โดย Super Admin เท่านั้น" : undefined}
+                      className="disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-xl bg-[#004643] text-white text-xs font-bold hover:bg-[#003836] active:scale-98 transition shadow-xs cursor-pointer flex items-center gap-1.5"
                     >
                       <LuCheck className="h-4 w-4 text-[#ABD1C6]" />
                       <span>
@@ -516,18 +523,21 @@ function Roles() {
                 <PermissionMatrix
                   selectedPermissions={workingPermissions}
                   onChange={setWorkingPermissions}
-                  readOnly={false}
+                  readOnly={isRoleLocked}
                 />
 
                 {/* Bottom Save Bar */}
                 <div className="pt-3 border-t border-[#E5E9E7]/60 flex items-center justify-between">
                   <span className="text-xs text-[#6B7773]">
-                    ปรับเปลี่ยนแล้วอย่าลืมกดบันทึกเพื่ออัปเดตสิทธิ์ของบทบาทนี้
+                    {isRoleLocked
+                      ? "สิทธิ์ของบทบาทผู้ดูแลระบบแก้ไขได้โดย Super Admin เท่านั้น (ดูได้อย่างเดียว)"
+                      : "ปรับเปลี่ยนแล้วอย่าลืมกดบันทึกเพื่ออัปเดตสิทธิ์ของบทบาทนี้"}
                   </span>
                   <button
                     type="button"
                     onClick={handleSaveRolePermissions}
-                    className="px-4 py-2 rounded-xl bg-[#ABD1C6] text-xs font-bold text-[#004643] hover:bg-[#97c4b7] active:scale-98 transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                    disabled={isRoleLocked}
+                    className="disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-xl bg-[#ABD1C6] text-xs font-bold text-[#004643] hover:bg-[#97c4b7] active:scale-98 transition shadow-xs cursor-pointer flex items-center gap-1.5"
                   >
                     <LuCheck className="h-4 w-4" />
                     <span>บันทึกสิทธิ์บทบาท</span>

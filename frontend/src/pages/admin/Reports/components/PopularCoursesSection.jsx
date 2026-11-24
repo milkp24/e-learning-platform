@@ -1,68 +1,79 @@
+import PropTypes from "prop-types";
 
 /**
- * PopularCoursesSection Component
- * Ranking cards and progress bars for top performing courses.
+ * PopularCoursesSection (ข้อ 32): ผลรายคอร์สจากข้อมูลจริง
+ * เรียงตามการลงทะเบียนในช่วงที่เลือก แล้วตามจำนวนผู้เรียนทั้งหมด
  */
-function PopularCoursesSection({ courses }) {
+const STATUS_LABELS = { active: "เผยแพร่แล้ว", draft: "ฉบับร่าง", pending: "รอตรวจสอบ" };
+
+function PopularCoursesSection({ courses = [], isLoading = false }) {
   return (
     <div className="rounded-[16px] border border-[#E5E9E7] bg-white p-6 shadow-2xs space-y-4">
       <div className="flex items-center justify-between border-b border-[#E5E9E7] pb-4">
         <div>
-          <h3 className="text-base font-bold text-[#26332F]">
-            หลักสูตรยอดนิยม (Top Performing Courses)
-          </h3>
+          <h3 className="text-base font-bold text-[#26332F]">ผลรายคอร์ส</h3>
           <p className="text-xs text-[#6B7773] mt-0.5">
-            จัดอันดับตามจำนวนผู้ลงทะเบียนและอัตราความสำเร็จ
+            เรียงตามการลงทะเบียนในช่วงที่เลือก · อัตราเรียนจบนับจากผู้เรียนทั้งหมดของคอร์ส
           </p>
         </div>
         <span className="rounded-full bg-[#FAFAFA] border border-[#E5E9E7] px-3 py-1 font-mono text-xs font-bold text-[#26332F]">
-          Top {courses.length} Courses
+          {courses.length} คอร์ส
         </span>
       </div>
 
-      <div className="space-y-4">
-        {courses.map((c, idx) => (
-          <div
-            key={idx}
-            className="rounded-[14px] border border-[#E5E9E7] bg-[#FAFAFA] p-4.5 transition hover:bg-white hover:shadow-2xs space-y-3"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#ABD1C6] text-xs font-black text-[#26332F]">
-                  #{idx + 1}
-                </span>
-                <h4 className="text-sm font-bold text-[#26332F]">
-                  {c.title}
-                </h4>
-              </div>
-
-              <div className="flex items-center gap-4 text-xs">
-                <span className="text-[#6B7773]">
-                  ลงทะเบียน: <strong className="text-[#26332F]">{c.enrollments}</strong> คน
-                </span>
-                <span className="text-[#6B7773]">
-                  เรียนสะสม: <strong className="text-[#26332F]">{c.hours}</strong> ชม.
-                </span>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[11px] font-bold">
-                <span className="text-[#6B7773]">Completion Rate</span>
-                <span className="text-[#26332F]">{c.completionRate}%</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-[#E5E9E7] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[#ABD1C6]"
-                  style={{ width: `${c.completionRate}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="h-40 rounded-xl bg-[#FAFAFA] animate-pulse" />
+      ) : courses.length === 0 ? (
+        <p className="py-10 text-center text-xs text-[#6B7773]">ยังไม่มีคอร์สในระบบ</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-[#6B7773]">
+              <tr className="border-b border-[#E5E9E7]">
+                <th className="py-2 pr-3 text-left font-semibold">#</th>
+                <th className="py-2 pr-3 text-left font-semibold">คอร์ส</th>
+                <th className="py-2 px-3 text-right font-semibold">ลงทะเบียนในช่วงนี้</th>
+                <th className="py-2 px-3 text-right font-semibold">ผู้เรียนทั้งหมด</th>
+                <th className="py-2 px-3 text-right font-semibold">บทที่จบในช่วงนี้</th>
+                <th className="py-2 pl-3 text-left font-semibold w-[28%]">อัตราเรียนจบ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {courses.map((c, idx) => (
+                <tr key={c.course_id} className="border-b border-[#E5E9E7]/60 break-inside-avoid">
+                  <td className="py-2.5 pr-3 font-mono text-[#6B7773]">{idx + 1}</td>
+                  <td className="py-2.5 pr-3">
+                    <p className="font-bold text-[#26332F]">{c.title}</p>
+                    <p className="text-[11px] text-[#6B7773]">
+                      {STATUS_LABELS[c.status] || c.status} · {c.lessonCount} บทเรียน
+                    </p>
+                  </td>
+                  <td className="py-2.5 px-3 text-right font-mono text-[#26332F]">{c.enrollmentsInRange}</td>
+                  <td className="py-2.5 px-3 text-right font-mono text-[#26332F]">{c.totalLearners}</td>
+                  <td className="py-2.5 px-3 text-right font-mono text-[#26332F]">{c.lessonsCompletedInRange}</td>
+                  <td className="py-2.5 pl-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 flex-1 rounded-full bg-[#E5E9E7] overflow-hidden" aria-hidden="true">
+                        <div className="h-full rounded-full bg-[#004643]" style={{ width: `${c.completionRate}%` }} />
+                      </div>
+                      <span className="w-20 text-right font-mono text-[#26332F]">
+                        {c.completionRate}% ({c.completedLearners}/{c.totalLearners})
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
+
+PopularCoursesSection.propTypes = {
+  courses: PropTypes.arrayOf(PropTypes.object),
+  isLoading: PropTypes.bool,
+};
+
 export default PopularCoursesSection;

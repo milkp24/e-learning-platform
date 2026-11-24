@@ -4,6 +4,14 @@ from app.extensions import db
 from app.models.user import User
 from app.models.role import Role, Permission
 from app.models.admin import AuditLog
+from app.utils.admin_scope import (
+    OUT_OF_SCOPE_ACCOUNT_MESSAGE,
+    OUT_OF_SCOPE_PERMISSION_MESSAGE,
+    OUT_OF_SCOPE_ROLE_MESSAGE,
+    can_assign_roles,
+    can_edit_role_permissions,
+    can_manage_account,
+)
 
 
 class RoleServiceError(Exception):
@@ -117,6 +125,12 @@ class RoleService:
         if role.role_name == "super_admin" and not caller.has_role("super_admin"):
             raise RoleServiceError("Only a Super Admin can assign the super_admin role.", 403, "Forbidden")
 
+        # ข้อ 12: Admin จัดการได้เฉพาะบัญชี/บทบาทผู้เรียนและผู้สอน
+        if not can_manage_account(caller, target_user):
+            raise RoleServiceError(OUT_OF_SCOPE_ACCOUNT_MESSAGE, 403, "Forbidden")
+        if not can_assign_roles(caller, [role.role_name]):
+            raise RoleServiceError(OUT_OF_SCOPE_ROLE_MESSAGE, 403, "Forbidden")
+
         # Prevent duplicate role assignment
         if target_user.has_role(role.role_name):
             raise RoleServiceError(f"User already has role '{role.role_name}'.", 409, "Conflict")
@@ -199,6 +213,10 @@ class RoleService:
         # Privilege Escalation Protection: Only Super Admin can modify super_admin role
         if role.role_name == "super_admin" and not caller.has_role("super_admin"):
             raise RoleServiceError("Only a Super Admin can modify the super_admin role.", 403, "Forbidden")
+
+        # ข้อ 12: Admin จัดการได้เฉพาะบัญชี/บทบาทผู้เรียนและผู้สอน
+        if not can_manage_account(caller, target_user):
+            raise RoleServiceError(OUT_OF_SCOPE_ACCOUNT_MESSAGE, 403, "Forbidden")
 
         # User must retain at least one role
         if len(target_user.roles) <= 1:
@@ -303,6 +321,10 @@ class RoleService:
         # เฉพาะ Super Admin เท่านั้นที่สามารถแก้ไขสิทธิ์ของ Super Admin ได้
         if role.role_name == "super_admin" and not caller.has_role("super_admin"):
             raise RoleServiceError("Only a Super Admin can modify super_admin permissions.", 403, "Forbidden")
+
+        # ข้อ 12: Admin แก้สิทธิ์ของบทบาท admin เองไม่ได้ (กันการให้สิทธิ์ตัวเองเพิ่ม)
+        if not can_edit_role_permissions(caller, role.role_name):
+            raise RoleServiceError(OUT_OF_SCOPE_PERMISSION_MESSAGE, 403, "Forbidden")
 
         if not data or "permissions" not in data or not isinstance(data.get("permissions"), list):
             raise RoleServiceError("permissions list is required.", 400, "Bad Request")

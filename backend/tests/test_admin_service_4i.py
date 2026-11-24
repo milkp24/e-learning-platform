@@ -83,7 +83,7 @@ def test_admin_modularization():
         r_sa_upd = client.put("/api/v1/admin/settings", headers=sa_headers, json={"session_timeout_minutes": "30"})
         assert r_sa_upd.status_code == 200
         upd_json = r_sa_upd.get_json()
-        assert upd_json["message"] == "Settings updated successfully."
+        assert upd_json["message"] == "บันทึกการตั้งค่าระบบเรียบร้อยแล้ว"
         assert any(s["key"] == "session_timeout_minutes" and s["value"] == "30" for s in upd_json["settings"])
 
         # Verify Audit Log was recorded

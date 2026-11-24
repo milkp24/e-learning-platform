@@ -66,7 +66,7 @@ def run_regression_suite():
 
     # TEST 1: Delete Classroom without children
     print("\n[TEST 1] ลบ Classroom ที่ไม่มีข้อมูลลูก")
-    res1 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": "Empty Course"})
+    res1 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": f"Empty Course {uuid.uuid4().hex[:6]}"})
     assert res1.status_code == 201
     c1_id = res1.get_json()["classroom"]["classroom_id"]
     res1_del = client.delete(f"/api/v1/classrooms/{c1_id}", headers=inst_a_headers)
@@ -78,7 +78,7 @@ def run_regression_suite():
 
     # TEST 2: Delete Classroom with Members
     print("\n[TEST 2] ลบ Classroom ที่มี Member")
-    res2 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": "Course with Members"})
+    res2 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": f"Course with Members {uuid.uuid4().hex[:6]}"})
     c2_id = res2.get_json()["classroom"]["classroom_id"]
     client.post(f"/api/v1/classrooms/{c2_id}/members", headers=inst_a_headers, json={"user_id": student_id})
     with app.app_context():
@@ -93,7 +93,7 @@ def run_regression_suite():
 
     # TEST 3: Delete Classroom with Chapter
     print("\n[TEST 3] ลบ Classroom ที่มี Chapter")
-    res3 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": "Course with Chapter"})
+    res3 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": f"Course with Chapter {uuid.uuid4().hex[:6]}"})
     c3_id = res3.get_json()["classroom"]["classroom_id"]
     with app.app_context():
         ch = Chapter(course_id=uuid.UUID(c3_id), title="Chapter 1", sequence_no=1)
@@ -110,7 +110,7 @@ def run_regression_suite():
 
     # TEST 4: Delete Classroom with Lesson
     print("\n[TEST 4] ลบ Classroom ที่มี Lesson")
-    res4 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": "Course with Lesson"})
+    res4 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": f"Course with Lesson {uuid.uuid4().hex[:6]}"})
     c4_id = res4.get_json()["classroom"]["classroom_id"]
     res4_l = client.post(f"/api/v1/classrooms/{c4_id}/lessons", headers=inst_a_headers, json={"title": "Lesson 1", "sequence_no": 1})
     l4_id = res4_l.get_json()["lesson"]["lesson_id"]
@@ -124,7 +124,7 @@ def run_regression_suite():
 
     # TEST 5: Delete Classroom with Exercise, Attempts & Lesson Progress
     print("\n[TEST 5] ลบ Classroom ที่มี Exercise, Attempts และ Lesson Progress")
-    res5 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": "Course with Exercises & Progress"})
+    res5 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": f"Course with Exercises & Progress {uuid.uuid4().hex[:6]}"})
     c5_id = res5.get_json()["classroom"]["classroom_id"]
     res5_l = client.post(f"/api/v1/classrooms/{c5_id}/lessons", headers=inst_a_headers, json={"title": "Lesson with Exercise", "sequence_no": 1})
     l5_id = res5_l.get_json()["lesson"]["lesson_id"]
@@ -154,7 +154,7 @@ def run_regression_suite():
 
     # TEST 6: Delete Classroom that is NOT owned by the instructor (RBAC 403)
     print("\n[TEST 6] ลบ Classroom ที่ไม่ใช่ของผู้ใช้ (Forbidden 403)")
-    res6 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": "Instructor A Course"})
+    res6 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": f"Instructor A Course {uuid.uuid4().hex[:6]}"})
     c6_id = res6.get_json()["classroom"]["classroom_id"]
     res6_del = client.delete(f"/api/v1/classrooms/{c6_id}", headers=inst_b_headers)
     print(f"Status: {res6_del.status_code}, Body: {res6_del.get_json()}")
@@ -194,7 +194,7 @@ def run_regression_suite():
 
     # TEST 11: Delete Classroom by Super Admin (Super Admin override 200)
     print("\n[TEST 11] ลบ Classroom โดย Super Admin (Super Admin override 200)")
-    res11 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": "Course for SuperAdmin test"})
+    res11 = client.post("/api/v1/classrooms", headers=inst_a_headers, json={"title": f"Course for SuperAdmin test {uuid.uuid4().hex[:6]}"})
     c11_id = res11.get_json()["classroom"]["classroom_id"]
     res11_del = client.delete(f"/api/v1/classrooms/{c11_id}", headers=super_admin_headers)
     print(f"Status: {res11_del.status_code}, Body: {res11_del.get_json()}")
